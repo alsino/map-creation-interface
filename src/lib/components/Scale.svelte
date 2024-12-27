@@ -43,8 +43,9 @@
 		return '';
 	}
 
-	$: swatchWidth =
-		config.colourSchemeClasses > 9 ? '8vw' : config.colourSchemeClasses > 6 ? '10vw' : '13vw';
+	// $: swatchWidth =
+	// 	config.colourSchemeClasses > 9 ? '8vw' : config.colourSchemeClasses > 6 ? '10vw' : '13vw';
+	$: swatchWidth = '5vw';
 </script>
 
 <div

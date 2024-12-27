@@ -1,5 +1,7 @@
 <!-- src/lib/components/MapPanel.svelte -->
 <script>
+	import { geoIdentity } from 'd3-geo';
+	import { feature } from 'topojson-client';
 	import { config } from '$lib/stores/config-features';
 	import { onMount } from 'svelte';
 	import { APP_HEIGHT, mobileSize, isMobile } from '$lib/stores/shared';
@@ -29,6 +31,31 @@
 	let innerWidth;
 	let containerHeight;
 
+	let transformedGeoData;
+
+	async function fetchAndTransformGeoData() {
+		const res = await fetch('/data/geodata/europe-20m.json');
+		const data = await res.json();
+
+		const width = 600;
+		const height = 600;
+		const padding = -60;
+
+		const projection = geoIdentity().reflectY(true);
+		projection.fitExtent(
+			[
+				[padding, padding],
+				[width - padding, height - padding]
+			],
+			feature(data, data.objects.cntrg)
+		);
+
+		transformedGeoData = {
+			countries: feature(data, data.objects.cntrg),
+			graticules: feature(data, data.objects.gra)
+		};
+	}
+
 	// Send map height to parent window
 	$: {
 		if ($APP_HEIGHT) {
@@ -40,6 +67,7 @@
 	$: $isMobile = innerWidth <= $mobileSize;
 
 	onMount(async () => {
+		await fetchAndTransformGeoData();
 		await getLanguage($selectedLanguage.value);
 	});
 
@@ -137,7 +165,13 @@
 			<div id="chart-body" class="relative mt-4 min-h-0 flex-1">
 				{#if legend && tooltip}
 					<div class="absolute inset-0">
-						<MapChoropleth {legend} {tooltip} {extraInfoTexts} {extraInfoLinks} />
+						<MapChoropleth
+							{legend}
+							{tooltip}
+							{extraInfoTexts}
+							{extraInfoLinks}
+							geoData={transformedGeoData}
+						/>
 					</div>
 				{/if}
 			</div>

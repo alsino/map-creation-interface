@@ -110,7 +110,7 @@
 			{#if isLoading}
 				<span class="spinner"></span>
 			{:else}
-				Create and Deploy Project
+				Create and Deploy Map
 			{/if}
 		</button>
 	</form>
