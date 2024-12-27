@@ -31,7 +31,17 @@
 		"vite": "^5.4.11"
 	},
 	"dependencies": {
+		"@octokit/rest": "^21.0.2",
 		"@tailwindcss/forms": "^0.5.9",
-		"@tailwindcss/typography": "^0.5.15"
+		"@tailwindcss/typography": "^0.5.15",
+		"d3-array": "^3.2.0",
+		"d3-fetch": "^3.0.1",
+		"d3-geo": "^3.1.0",
+		"d3-scale": "^4.0.2",
+		"d3-scale-chromatic": "^3.0.0",
+		"ignore": "^7.0.0",
+		"node-fetch": "^3.3.2",
+		"svelte-select": "^5.8.3",
+		"topojson-client": "^3.1.0"
 	}
 }
