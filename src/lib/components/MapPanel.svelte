@@ -2,7 +2,7 @@
 <script>
 	import { geoIdentity } from 'd3-geo';
 	import { feature } from 'topojson-client';
-	import { config } from '$lib/stores/config-features';
+	import { mapConfig } from '$lib/stores/config-map';
 	import { onMount } from 'svelte';
 	import { APP_HEIGHT, mobileSize, isMobile } from '$lib/stores/shared';
 	import { selectedLanguage } from '$lib/stores/shared';
@@ -10,8 +10,6 @@
 	import MapChoropleth from '$lib/components/MapChoropleth.svelte';
 	import MapSimple from '$lib/components/MapSimple.svelte';
 	import Select from 'svelte-select';
-
-	export let mapConfig;
 
 	let heading;
 	let subheading;
@@ -90,7 +88,7 @@
 				legend = legendEntries.map((item) => ({
 					[item]: data[item],
 					label: data[item],
-					color: config[`${item}Color`]
+					color: $mapConfig[`${item}Color`]
 				}));
 
 				// TOOLTIP
@@ -154,11 +152,11 @@
 
 		<div id="chart" class="mt-8 flex min-h-0 flex-1 flex-col">
 			<div id="chart-header" class="flex-none">
-				{#if config.headlineAvailable && heading}
-					<h1 class="text-xl font-bold">{heading}</h1>
+				{#if $mapConfig.headlineAvailable && $mapConfig.title}
+					<h1 class="text-xl font-bold">{$mapConfig.title}</h1>
 				{/if}
-				{#if config.subheadlineAvailable && subheading}
-					<h3 class="text-md">{subheading}</h3>
+				{#if $mapConfig.subheadlineAvailable && $mapConfig.subtitle}
+					<h3 class="text-md">{$mapConfig.subtitle}</h3>
 				{/if}
 			</div>
 
@@ -166,6 +164,7 @@
 				{#if legend && tooltip}
 					<div class="absolute inset-0">
 						<MapChoropleth
+							mapConfig={$mapConfig}
 							{legend}
 							{tooltip}
 							{extraInfoTexts}
@@ -178,21 +177,21 @@
 		</div>
 
 		<div class="mt-2 flex-none text-xs">
-			{#if config.textSourceAvailable && textSourceDescription && textSource}
+			{#if $mapConfig.textSource}
 				<div>
-					<span class="font-bold">{textSourceDescription}: </span>
-					<span>{textSource}</span>
+					<span class="font-bold">Source: </span>
+					<span>{$mapConfig.textSource}</span>
 				</div>
 			{/if}
-			{#if config.textNoteAvailable && textNoteDescription && textNote}
+			{#if $mapConfig.textNote}
 				<div>
-					<span class="font-bold">{textNoteDescription}: </span>
-					<span>{textNote}</span>
+					<span class="font-bold">Note: </span>
+					<span>{$mapConfig.textNote}</span>
 				</div>
 			{/if}
-			{#if config.textDataAccessAvailable && linkDataAccess && textDataAccess}
+			{#if $mapConfig.linkDataAccess}
 				<div class="underline">
-					<a target="_blank" href={linkDataAccess}>{textDataAccess}</a>
+					<a target="_blank" href={$mapConfig.linkDataAccess}>{textDataAccess}</a>
 				</div>
 			{/if}
 		</div>

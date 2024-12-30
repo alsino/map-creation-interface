@@ -35,6 +35,7 @@
 		"@tailwindcss/forms": "^0.5.9",
 		"@tailwindcss/typography": "^0.5.15",
 		"d3-array": "^3.2.0",
+		"d3-dsv": "^3.0.1",
 		"d3-fetch": "^3.0.1",
 		"d3-geo": "^3.1.0",
 		"d3-scale": "^4.0.2",

@@ -1,6 +1,5 @@
 <script>
 	import { formatInt } from '$lib/utils/formatNumbers';
-	import { config } from '$lib/stores/config-features';
 
 	let width;
 
@@ -10,36 +9,28 @@
 	export let scaleMin;
 	export let scaleMax;
 
-	// Add the static values from the config if available
-	const colorBarFirstValue =
-		config.colorBarFirstValue !== undefined ? config.colorBarFirstValue : scaleMin;
-	const colorBarLastValue =
-		config.colorBarLastValue !== undefined ? config.colorBarLastValue : scaleMax;
+	export let mapConfig;
+
+	$: console.log('mapConfig', mapConfig);
+
+	// Add the static values from the mapConfig if available
+	$: colorBarFirstValue = mapConfig.overrideScaleValues ? mapConfig.colorBarFirstValue : scaleMin;
+	$: colorBarLastValue = mapConfig.overrideScaleValues ? mapConfig.colorBarLastValue : scaleMax;
 
 	// Force 'fullNumbers' if either colorBarFirstValue or colorBarLastValue exists
 	if (colorBarFirstValue !== scaleMin || colorBarLastValue !== scaleMax) {
-		config.datasetUnit = 'fullNumbers';
+		mapConfig.datasetUnit = 'fullNumbers';
 	}
 
-	clusters.unshift(0);
-
-	function displayDigit(index, number) {
-		// Get the total number of clusters from config.colourSchemeClasses
-		const totalClusters = config.colourSchemeClasses;
-
-		// Display only for the first and last clusters
-		if (index === 0 || index === totalClusters - 1) {
-			// Choose to display the static values or the scale min/max
-			const displayValue = index === 0 ? colorBarFirstValue : colorBarLastValue;
-
-			// If datasetUnit is 'percent', multiply the value by 100, otherwise return the value directly
-			return config.datasetUnit === 'percent'
-				? formatInt(displayValue * 100)
-				: config.datasetUnit === 'fullNumbers'
-					? displayValue
-					: '';
-		}
-		// Return an empty string for other clusters
+	function displayDigit(index) {
+		if (index === 0)
+			return mapConfig.datasetUnit === 'percent'
+				? formatInt(colorBarFirstValue * 100)
+				: colorBarFirstValue;
+		if (index === classes.length - 1)
+			return mapConfig.datasetUnit === 'percent'
+				? formatInt(colorBarLastValue * 100)
+				: colorBarLastValue;
 		return '';
 	}
 
@@ -59,9 +50,9 @@
 		{/each}
 	</div>
 	<div class="flex justify-between">
-		{#each clusters as number, index}
+		{#each classes as _, index}
 			<div class="swatch text-xs">
-				{displayDigit(index, index == 0 ? scaleMin : scaleMax)}
+				{displayDigit(index)}
 			</div>
 		{/each}
 	</div>

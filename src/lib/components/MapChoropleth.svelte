@@ -1,5 +1,5 @@
 <script>
-	import { config } from '$lib/stores/config-features';
+	// import { config } from '$lib/stores/config-features';
 	import { MOUSE } from '$lib/stores/shared';
 	import { onMount } from 'svelte';
 	import { CENTER_ON } from '$lib/stores/shared';
@@ -69,6 +69,9 @@
 	export let tooltip;
 	export let extraInfoTexts;
 	export let extraInfoLinks;
+	export let mapConfig;
+
+	// $: console.log('mapConfig', mapConfig);
 
 	$: countryNames = countryNameTranslations[$selectedLanguage.value];
 
@@ -102,6 +105,11 @@
 	let countriesWithExtraInfo;
 	let hoveredCountry;
 
+	// Add reactive statement for parsedData
+	$: if (mapConfig.parsedData && countriesAll) {
+		mergeData();
+	}
+
 	$: if ($CENTER_ON === 'europe') {
 		paddingMap = -85;
 		center = countriesAll;
@@ -115,31 +123,33 @@
 	let colorScheme;
 	let clusters;
 
-	$: if (config.datasetType == 'values') {
+	$: if (mapConfig.datasetType == 'values') {
 		colorScale = scaleQuantile();
-	} else if (config.datasetType == 'binary') {
+	} else if (mapConfig.datasetType == 'binary') {
 		colorScale = function (value) {
 			return value == 1 ? '#2B3163' : '#F4F4F4';
 		};
 	}
 
 	// Reactive declarations
-	$: colorScaleType = config.colourSchemeType;
-	$: n = config.colourSchemeClasses;
+	$: colorScaleType = mapConfig.colourSchemeType;
+	$: n = mapConfig.colourSchemeClasses;
 
 	// Validate and select color scheme based on config
 	$: colorScheme =
 		colorScaleType !== 'unknown' &&
 		colorSchemeMap[colorScaleType] &&
-		colorSchemeMap[colorScaleType][config.colourScheme]
+		colorSchemeMap[colorScaleType][mapConfig.colourScheme]
 			? // Check if the color scheme should be reversed
-				config.colourSchemeReverse
-				? colorSchemeMap[colorScaleType][config.colourScheme].reverse() // Reverse the color scheme
-				: colorSchemeMap[colorScaleType][config.colourScheme] // Use the color scheme as is
+				mapConfig.colourSchemeReverse
+				? colorSchemeMap[colorScaleType][mapConfig.colourScheme].reverse() // Reverse the color scheme
+				: colorSchemeMap[colorScaleType][mapConfig.colourScheme] // Use the color scheme as is
 			: (console.warn(
 					`Invalid colourSchemeType: ${colorScaleType}. Defaulting to 'sequential' type.`
 				),
-				console.warn(`Invalid colourScheme: ${config.colourScheme}. Defaulting to 'red' scheme.`),
+				console.warn(
+					`Invalid colourScheme: ${mapConfig.colourScheme}. Defaulting to 'red' scheme.`
+				),
 				colorSchemeMap['sequential'] ? colorSchemeMap['sequential'].red : null);
 
 	// Color scheme map, with a fallback for missing classes (fallback to 5 classes)
@@ -181,7 +191,6 @@
 	const padding = -85;
 
 	$: if ($dataReady) {
-		// console.log('Country data for map loaded');
 		projection.fitExtent(
 			[
 				[paddingMap, paddingMap],
@@ -208,92 +217,121 @@
 			});
 	}
 
-	async function fetchCSV() {
-		const res = await csv('/data/thematic/data.csv')
-			.then(function (data) {
-				// Parse numbers as integers
-				data.forEach(function (d) {
-					if (d.value !== 'null') {
-						d['value'] = +d['value'];
-					} else {
-						d['value'] = null;
-					}
-				});
+	// async function fetchCSV() {
+	// 	const res = await csv('/data/thematic/data.csv')
+	// 		.then(function (data) {
+	// 			// Parse numbers as integers
+	// 			data.forEach(function (d) {
+	// 				if (d.value !== 'null') {
+	// 					d['value'] = +d['value'];
+	// 				} else {
+	// 					d['value'] = null;
+	// 				}
+	// 			});
 
-				let extentArray = data.map((item) => {
-					return item.value;
-				});
-				csvData.set(data);
+	// 			let extentArray = data.map((item) => {
+	// 				return item.value;
+	// 			});
+	// 			csvData.set(data);
 
-				// Set color scale domain and range
-				if (config.datasetType == 'values') {
-					colorScale.domain(extent(extentArray)).range(colorScheme);
-					clusters = colorScale.quantiles();
-					scaleMin = min(extentArray);
-					scaleMax = max(extentArray);
-				} else {
-					clusters = [];
-				}
-			})
-			.catch((error) => console.error('error', error));
+	// 			// Set color scale domain and range
+	// 			if (mapConfig.datasetType == 'values') {
+	// 				colorScale.domain(extent(extentArray)).range(colorScheme);
+	// 				clusters = colorScale.quantiles();
+	// 				scaleMin = min(extentArray);
+	// 				scaleMax = max(extentArray);
+	// 			} else {
+	// 				clusters = [];
+	// 			}
+	// 		})
+	// 		.catch((error) => console.error('error', error));
+	// }
+
+	$: mapConfig.parsedData && mergeData();
+	// $: console.log('mapConfig.parsedData', mapConfig.parsedData);
+
+	// Calculate data extent for colorScale
+	let extentArray = mapConfig?.parsedData
+		? mapConfig.parsedData
+				.map((item) => item?.value)
+				.filter((value) => value != null && !isNaN(+value))
+		: [];
+
+	// console.log('Extent Array (calculated once):', extentArray);
+
+	$: {
+		if (extentArray.length === 0) {
+			console.warn('No valid data values found in extentArray.');
+		} else if (mapConfig.datasetType === 'values') {
+			if (colorScale?.domain && colorScale?.range && Array.isArray(colorScheme)) {
+				colorScale.domain(extent(extentArray)).range(colorScheme);
+				clusters = colorScale.quantiles();
+				scaleMin = min(extentArray);
+				scaleMax = max(extentArray);
+			} else {
+				console.error('Invalid colorScheme or colorScale configuration.');
+			}
+		} else {
+			clusters = [];
+		}
 	}
 
 	function mergeData() {
-		// Transform csv structure to object style to be better usable
+		if (!mapConfig.parsedData) return;
 
-		let csvTransformed = $csvData.reduce(
-			(obj, item) =>
-				Object.assign(obj, {
-					[item.id]: {
-						value: item.value,
-						extraInfo: item.extraInfo.toLowerCase() === 'true',
-						contentText: item['text_content'],
-						linkText: item['link_text'],
-						linkURL: item['link_url_target'],
-						audioURL1: item['audio_url_1'],
-						audioURL2: item['audio_url_2'],
-						audioURL3: item['audio_url_3'],
-						imageSourceURL: item['image_url_source'],
-						imageTargetURL: item['image_url_target'],
-						videoURL: item['video_url']
-					}
-				}),
+		let csvTransformed = mapConfig.parsedData.reduce(
+			(obj, item) => ({
+				...obj,
+				[item.id]: {
+					value: item.value,
+					extraInfo: item.extraInfo,
+					contentText: item.text_content,
+					linkText: item.link_text,
+					linkURL: item.link_url_target,
+					audioURL1: item.audio_url_1,
+					audioURL2: item.audio_url_2,
+					audioURL3: item.audio_url_3,
+					imageSourceURL: item.image_url_source,
+					imageTargetURL: item.image_url_target,
+					videoURL: item.video_url
+				}
+			}),
 			{}
 		);
 
-		// console.log(csvTransformed);
+		if (countriesAll) {
+			countriesAll.features.map((item) => {
+				if (Object.keys(csvTransformed).includes(item.properties.id)) {
+					item.csvImport = csvTransformed[item.properties.id];
+				}
+			});
 
-		// Add values from csv
-		countriesAll.features.map((item) => {
-			// Add attributes only for countries included in CSV
-			if (Object.keys(csvTransformed).includes(item.properties.id)) {
-				item.csvImport = csvTransformed[item.properties.id];
-			}
-		});
+			countriesWithCsvImport = countriesAll.features.filter((item) => {
+				return item.csvImport;
+			});
 
-		countriesWithCsvImport = countriesAll.features.filter((item) => {
-			return item.csvImport;
-		});
+			countriesWithExtraInfo = countriesWithCsvImport.filter((item) => {
+				return item.csvImport.extraInfo == true;
+			});
 
-		countriesWithExtraInfo = countriesWithCsvImport.filter((item) => {
-			return item.csvImport.extraInfo == true;
-		});
+			countriesWithExtraInfo = {
+				type: 'FeatureCollection',
+				features: countriesWithExtraInfo
+			};
 
-		countriesWithExtraInfo = {
-			type: 'FeatureCollection',
-			features: countriesWithExtraInfo
-		};
-
-		$dataReady = true;
+			// console.log('countriesWithCsvImport', countriesWithCsvImport);
+			$dataReady = true;
+		}
 	}
 
 	onMount(async () => {
 		await fetchGeoData();
-		await fetchCSV();
+		// await fetchCSV();
 		await mergeData();
 	});
 
 	function getFill(feature) {
+		// console.log('feature', feature);
 		let csvData = feature.csvImport;
 
 		if (csvData) {
@@ -307,7 +345,7 @@
 				}
 			}
 		} else {
-			return '#F4F4F4';
+			return '#E0E0E0';
 		}
 	}
 
@@ -377,7 +415,7 @@
 	}
 
 	$: handleMouseEnter = function (country) {
-		if (config.tooltipAvailable) {
+		if (mapConfig.tooltipAvailable) {
 			let countryName = countryNames.filter((c) => {
 				return c.id == country.properties.id;
 			})[0].na;
@@ -400,7 +438,7 @@
 	};
 
 	$: handleMouseLeave = function (country) {
-		if (config.tooltipAvailable) {
+		if (mapConfig.tooltipAvailable) {
 			tooltipVisible = false;
 		}
 	};
@@ -421,18 +459,20 @@
 		handleMouseEnter(country);
 		handleMouseClick(country);
 	};
+
+	// $: console.log('countriesAll', countriesAll);
 </script>
 
 {#if $dataReady}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div id="map" class="relative h-full w-full" on:mousemove={handleMouseMove}>
-		{#if config.datasetType == 'values'}
-			{#if config.scaleBarAvailable}
-				<Scale classes={colorScheme} {clusters} {scaleMin} {scaleMax} />
+		{#if mapConfig.datasetType == 'values'}
+			{#if mapConfig.scaleBarAvailable}
+				<Scale classes={colorScheme} {clusters} {scaleMin} {scaleMax} {mapConfig} />
 			{/if}
 		{/if}
 
-		{#if config.legendAvailable}
+		{#if mapConfig.legendAvailable}
 			<Legend {legend} />
 		{/if}
 
@@ -458,11 +498,12 @@
 
 			<!-- countriesWithExtraInfo added for the  -->
 			{#each countriesWithExtraInfo.features as feature, index}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<path
 					d={path(feature)}
 					stroke={getStroke(feature)}
 					fill={getFill(feature)}
-					class={config.datasetType == 'values'
+					class={mapConfig.datasetType == 'values'
 						? 'country-extra-info-values'
 						: 'country-extra-info-binary'}
 					on:mouseenter={() => handleMouseEnter(feature)}
@@ -492,15 +533,15 @@
 			<div class="tooltip-head font-bold">{$MOUSE.tooltip.name}</div>
 			<div class="tooltip-body space-y-1">
 				{#each tooltip as tip}
-					{#if config.datasetType == 'values'}
+					{#if mapConfig.datasetType == 'values'}
 						<div class="values">
-							{#if config.datasetUnit == 'percent'}
-								{#if config.percentRounded == true}
+							{#if mapConfig.datasetUnit == 'percent'}
+								{#if mapConfig.percentRounded == true}
 									<span class="font-bold">{formatInt($MOUSE.tooltip.value * 100)}%</span>
-								{:else if config.percentRounded == false}
+								{:else if mapConfig.percentRounded == false}
 									<span class="font-bold">{Math.round($MOUSE.tooltip.value * 1000) / 10}%</span>
 								{/if}
-							{:else if config.datasetUnit == 'fullNumbers'}
+							{:else if mapConfig.datasetUnit == 'fullNumbers'}
 								<span class="font-bold">{$MOUSE.tooltip.value}</span>
 							{/if}
 							<span>{tip.label}</span>
