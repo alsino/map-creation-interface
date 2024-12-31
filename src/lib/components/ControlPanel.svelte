@@ -4,10 +4,47 @@
 	import { dataReady } from '$lib/stores/shared';
 	import { csvParse } from 'd3-dsv';
 
+	// const colorSchemeTypes = ['sequential', 'diverging'];
+	// const colorSchemes = {
+	// 	sequential: ['blue', 'green', 'gray', 'orange', 'purple', 'red', 'blue-green', 'blue-purple'],
+	// 	diverging: ['brown-blue-green', 'purple-green', 'red-blue', 'red-gray', 'red-yellow-blue']
+	// };
+
+	// Replace the current colorSchemes declaration with this:
 	const colorSchemeTypes = ['sequential', 'diverging'];
 	const colorSchemes = {
-		sequential: ['blue', 'green', 'gray', 'orange', 'purple', 'red', 'blue-green', 'blue-purple'],
-		diverging: ['brown-blue-green', 'purple-green', 'red-blue', 'red-gray', 'red-yellow-blue']
+		sequential: [
+			'blue',
+			'green',
+			'gray',
+			'orange',
+			'purple',
+			'red',
+			'blue-green',
+			'blue-purple',
+			'green-blue',
+			'orange-red',
+			'purple-blue-green',
+			'purple-blue',
+			'purple-blue-darker',
+			'purple-red',
+			'red-purple',
+			'yellow-green-blue',
+			'yellow-green',
+			'yellow-orange-brown',
+			'yellow-orange-red'
+		],
+		diverging: [
+			'brown-blue-green',
+			'purple-green',
+			'pink-yellow-green',
+			'purple-orange',
+			'red-blue',
+			'red-gray',
+			'red-yellow-blue',
+			'red-yellow-green',
+			'spectral'
+		]
 	};
 
 	let title = $mapConfig.title;

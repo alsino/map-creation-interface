@@ -18,9 +18,9 @@
 	$: colorBarLastValue = mapConfig.overrideScaleValues ? mapConfig.colorBarLastValue : scaleMax;
 
 	// Force 'fullNumbers' if either colorBarFirstValue or colorBarLastValue exists
-	if (colorBarFirstValue !== scaleMin || colorBarLastValue !== scaleMax) {
-		mapConfig.datasetUnit = 'fullNumbers';
-	}
+	// if (colorBarFirstValue !== scaleMin || colorBarLastValue !== scaleMax) {
+	// 	mapConfig.datasetUnit = 'fullNumbers';
+	// }
 
 	function displayDigit(index) {
 		if (index === 0)
