@@ -140,17 +140,18 @@
 		colorScaleType !== 'unknown' &&
 		colorSchemeMap[colorScaleType] &&
 		colorSchemeMap[colorScaleType][mapConfig.colourScheme]
-			? // Check if the color scheme should be reversed
-				mapConfig.colourSchemeReverse
-				? colorSchemeMap[colorScaleType][mapConfig.colourScheme].reverse() // Reverse the color scheme
-				: colorSchemeMap[colorScaleType][mapConfig.colourScheme] // Use the color scheme as is
-			: (console.warn(
-					`Invalid colourSchemeType: ${colorScaleType}. Defaulting to 'sequential' type.`
-				),
-				console.warn(
-					`Invalid colourScheme: ${mapConfig.colourScheme}. Defaulting to 'red' scheme.`
-				),
-				colorSchemeMap['sequential'] ? colorSchemeMap['sequential'].red : null);
+			? mapConfig.colourSchemeReverse
+				? [...colorSchemeMap[colorScaleType][mapConfig.colourScheme]].reverse()
+				: colorSchemeMap[colorScaleType][mapConfig.colourScheme]
+			: colorSchemeMap['sequential'].red;
+
+	// And add this reactive statement after it to force the color scale to update:
+	$: {
+		if (mapConfig.datasetType === 'values' && colorScheme) {
+			colorScale.domain(extent(extentArray)).range(colorScheme);
+			clusters = colorScale.quantiles();
+		}
+	}
 
 	// Color scheme map, with a fallback for missing classes (fallback to 5 classes)
 	$: colorSchemeMap = {

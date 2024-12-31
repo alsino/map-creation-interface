@@ -121,6 +121,14 @@
 
 		mapConfig.update((m) => ({ ...m, parsedData: parsed }));
 	}
+
+	function handleColorOrderChange(value) {
+		colourSchemeReverse = value;
+		mapConfig.update((m) => ({
+			...m,
+			colourSchemeReverse: value
+		}));
+	}
 </script>
 
 <div class="space-y-4 rounded-lg bg-white p-6 text-left shadow-sm">
@@ -250,11 +258,37 @@
 				</select>
 			</div>
 
-			<div class="space-y-2">
+			<!-- <div class="space-y-2">
 				<label class="flex items-center">
 					<input type="checkbox" bind:checked={colourSchemeReverse} class="mr-2" />
 					Reverse Color Scheme
 				</label>
+			</div> -->
+
+			<div class="space-y-2">
+				<label>Color Scheme Order</label>
+				<div class="flex gap-4">
+					<label class="flex items-center">
+						<input
+							type="radio"
+							name="colorOrder"
+							checked={!colourSchemeReverse}
+							on:change={() => handleColorOrderChange(false)}
+							class="mr-2"
+						/>
+						Normal
+					</label>
+					<label class="flex items-center">
+						<input
+							type="radio"
+							name="colorOrder"
+							checked={colourSchemeReverse}
+							on:change={() => handleColorOrderChange(true)}
+							class="mr-2"
+						/>
+						Reversed
+					</label>
+				</div>
 			</div>
 
 			<div class="space-y-2">
