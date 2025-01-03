@@ -1,12 +1,17 @@
-<!-- src/lib/components/DeployApp.svelte -->
 <script>
+	import { mapConfig } from '$lib/stores/config-map';
 	let repoName = '';
 	let errorMessage = null;
 	let successMessage = null;
+	let warningMessage = null;
 	let isLoading = false;
+	let repoUrl = null;
+	let deploymentUrl = null;
+
 	let steps = [
+		{ id: 'validate', text: 'Validating repository name', completed: false, current: false },
 		{ id: 'create', text: 'Creating GitHub repository', completed: false, current: false },
-		{ id: 'commit', text: 'Committing project files', completed: false, current: false },
+		{ id: 'config', text: 'Configuring map settings', completed: false, current: false },
 		{ id: 'deploy', text: 'Deploying to Vercel', completed: false, current: false }
 	];
 
@@ -14,68 +19,78 @@
 		isLoading = true;
 		errorMessage = null;
 		successMessage = null;
+		warningMessage = null;
+		repoUrl = null;
 		steps = steps.map((step) => ({ ...step, completed: false, current: false }));
 
 		try {
+			// Validation step
 			steps = steps.map((step) => ({
 				...step,
+				current: step.id === 'validate'
+			}));
+
+			if (!/^[a-zA-Z0-9-_]+$/.test(repoName)) {
+				throw new Error(
+					'Invalid repository name. Use only letters, numbers, hyphens, and underscores.'
+				);
+			}
+
+			// Create and config steps
+			steps = steps.map((step) => ({
+				...step,
+				completed: step.id === 'validate',
 				current: step.id === 'create'
 			}));
 
-			const createResponse = await fetch('/api/create-repo', {
+			// Create and configure repository
+			const response = await fetch('/api/commit-component', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ repoName })
+				body: JSON.stringify({ repoName, mapConfig: $mapConfig })
 			});
 
-			if (!createResponse.ok) {
-				const data = await createResponse.json();
+			const data = await response.json();
+
+			if (!response.ok) {
 				throw new Error(data.error || 'Failed to create repository');
 			}
 
+			// Update steps for deployment
 			steps = steps.map((step) => ({
 				...step,
-				completed: step.id === 'create',
-				current: step.id === 'commit'
-			}));
-
-			const commitResponse = await fetch('/api/commit-component', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ repoName })
-			});
-
-			if (!commitResponse.ok) {
-				throw new Error('Failed to commit files');
-			}
-
-			steps = steps.map((step) => ({
-				...step,
-				completed: ['create', 'commit'].includes(step.id),
+				completed: ['validate', 'create', 'config'].includes(step.id),
 				current: step.id === 'deploy'
 			}));
 
+			// Deploy to Vercel using existing endpoint
 			const deployResponse = await fetch('/api/deploy-vercel', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ repoName })
 			});
 
-			if (!deployResponse.ok) {
-				const data = await deployResponse.json();
-				throw new Error(data.error || 'Failed to deploy to Vercel');
-			}
-
 			const deployData = await deployResponse.json();
 
+			if (!deployResponse.ok) {
+				throw new Error(deployData.error || 'Failed to deploy to Vercel');
+			}
+
+			// All steps completed
 			steps = steps.map((step) => ({
 				...step,
 				completed: true,
 				current: false
 			}));
 
-			successMessage = `Successfully deployed! Your site will be available at ${deployData.deploymentUrl}`;
-			repoName = '';
+			successMessage = 'Successfully deployed!';
+			deploymentUrl = deployData.projectUrl; // This is the permanent project URL from projectData.link
+			repoUrl = data.repoUrl;
+
+			// Add deployment URL to success message
+			if (deployData.projectUrl) {
+				successMessage += `\nProject URL: ${deployData.projectUrl}`;
+			}
 		} catch (error) {
 			errorMessage = error.message;
 			steps = steps.map((step) => ({
@@ -116,7 +131,7 @@
 	</form>
 
 	{#if isLoading || steps.some((step) => step.completed)}
-		<div class="steps-container">
+		<div class="mt-4 rounded bg-gray-50 p-4">
 			{#each steps as step}
 				<div class="step" class:completed={step.completed} class:current={step.current}>
 					{#if step.completed}
@@ -132,25 +147,31 @@
 		</div>
 	{/if}
 
-	{#if errorMessage}
-		<p class="error">{errorMessage}</p>
-	{/if}
-
 	{#if successMessage}
-		<p class="success">{successMessage}</p>
+		<div class="mt-4 rounded bg-green-50 p-4 text-green-700">
+			<p class="font-bold">Success</p>
+			<p>Successfully deployed!</p>
+			<div class="mt-2 space-y-2">
+				{#if deploymentUrl}
+					<p>
+						Your map will be available in a few minutes at <a
+							href={deploymentUrl}
+							target="_blank"
+							class="underline">{deploymentUrl}</a
+						>
+					</p>
+				{/if}
+				{#if repoUrl}
+					<p>
+						<a href={repoUrl} target="_blank" class="underline">View map repository</a>
+					</p>
+				{/if}
+			</div>
+		</div>
 	{/if}
 </div>
 
 <style>
-	.error {
-		color: red;
-		margin-top: 1rem;
-	}
-	.success {
-		color: green;
-		margin-top: 1rem;
-	}
-
 	.spinner {
 		display: inline-block;
 		width: 20px;
@@ -173,13 +194,6 @@
 		to {
 			transform: rotate(360deg);
 		}
-	}
-
-	.steps-container {
-		margin-top: 1.5rem;
-		padding: 1rem;
-		border-radius: 0.5rem;
-		background-color: #f5f5f5;
 	}
 
 	.step {

@@ -46,66 +46,165 @@ async function getAllFiles(dir, ignoredFiles) {
 }
 
 export async function POST({ request }) {
-	const { repoName } = await request.json();
+	const { repoName, mapConfig } = await request.json();
 
 	if (!GITHUB_TOKEN) {
 		return json({ error: 'GitHub token not configured' }, { status: 500 });
 	}
 
+	// Validate repository name
+	const repoNameRegex = /^[a-zA-Z0-9-_]+$/;
+	if (!repoNameRegex.test(repoName)) {
+		return json(
+			{
+				error: 'Invalid repository name. Use only letters, numbers, hyphens, and underscores.',
+				status: 'error'
+			},
+			{ status: 400 }
+		);
+	}
+
+	const MAX_RETRIES = 3;
+	const RETRY_DELAY = 1000;
+
+	async function retryOperation(operation, retries = MAX_RETRIES) {
+		for (let i = 0; i < retries; i++) {
+			try {
+				return await operation();
+			} catch (error) {
+				if (i === retries - 1) throw error;
+				await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+			}
+		}
+	}
+
 	try {
-		// Read .gitignore
-		const gitignoreContent = await readFile('.gitignore', 'utf-8');
-		const ignoredFiles = ignore().add(gitignoreContent);
-
-		// Get all project files
-		const projectFiles = await getAllFiles(process.cwd(), ignoredFiles);
-
 		const octokit = new Octokit({ auth: GITHUB_TOKEN });
 		const { data: user } = await octokit.users.getAuthenticated();
 
-		// Add vercel.json configuration
-		const vercelConfig = {
-			github: {
-				enabled: true,
-				silent: true
-			},
-			framework: 'sveltekit'
-		};
+		// Check if template repository exists
+		try {
+			await octokit.repos.get({
+				owner: 'alsino', // Replace with your template repo owner
+				repo: 'map-creation-interface' // Replace with your template repo name
+			});
+		} catch (error) {
+			return json(
+				{
+					error: 'Template repository not found',
+					status: 'error',
+					details: 'Please ensure the template repository exists'
+				},
+				{ status: 404 }
+			);
+		}
 
-		// Commit vercel.json first
-		await octokit.repos.createOrUpdateFileContents({
-			owner: user.login,
-			repo: repoName,
-			path: 'vercel.json',
-			message: 'Add Vercel configuration',
-			content: Buffer.from(JSON.stringify(vercelConfig, null, 2)).toString('base64')
+		// Check and delete existing repo if needed
+		try {
+			await octokit.repos.get({
+				owner: user.login,
+				repo: repoName
+			});
+
+			await retryOperation(async () => {
+				await octokit.repos.delete({
+					owner: user.login,
+					repo: repoName
+				});
+			});
+
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+		} catch (error) {
+			if (error.status !== 404) throw error;
+		}
+
+		// Create repository using template with retry
+		await retryOperation(async () => {
+			await octokit.repos.createUsingTemplate({
+				template_owner: 'alsino',
+				template_repo: 'map-creation-interface',
+				owner: user.login,
+				name: repoName,
+				private: false,
+				include_all_branches: false,
+				description: 'Created from Euranet Plus Map template'
+			});
 		});
 
-		// Commit each file
-		for (const [path, content] of projectFiles) {
-			try {
+		// Wait for repository to be ready
+		await new Promise((resolve) => setTimeout(resolve, 2000));
+
+		// Get and update config-map.js with retry
+		try {
+			const { data: currentFile } = await retryOperation(async () => {
+				return await octokit.repos.getContent({
+					owner: user.login,
+					repo: repoName,
+					path: 'src/lib/stores/config-map.js'
+				});
+			});
+
+			const configMapContent = `import { writable } from 'svelte/store';
+
+export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
+
+			await retryOperation(async () => {
 				await octokit.repos.createOrUpdateFileContents({
 					owner: user.login,
 					repo: repoName,
-					path,
-					message: `Add ${path}`,
-					content: Buffer.from(content).toString('base64')
+					path: 'src/lib/stores/config-map.js',
+					message: 'Update map configuration',
+					content: Buffer.from(configMapContent).toString('base64'),
+					sha: currentFile.sha,
+					branch: 'main'
+				});
+			});
+
+			// Trigger Vercel deployment
+			try {
+				await retryOperation(async () => {
+					await octokit.repos.createDispatchEvent({
+						owner: user.login,
+						repo: repoName,
+						event_type: 'deployment'
+					});
 				});
 			} catch (error) {
-				console.error(`Error committing ${path}:`, error);
-				throw new Error(`Failed to commit ${path}: ${error.message}`);
+				return json({
+					message: 'Repository created but deployment failed',
+					status: 'warning',
+					details: error.message,
+					repoUrl: `https://github.com/${user.login}/${repoName}`
+				});
 			}
-		}
 
-		return json({ message: 'Project files committed successfully' });
+			return json({
+				message: 'Repository created and configured successfully',
+				status: 'success',
+				repoUrl: `https://github.com/${user.login}/${repoName}`
+			});
+		} catch (error) {
+			// If config update fails, delete the repository to maintain consistency
+			try {
+				await octokit.repos.delete({
+					owner: user.login,
+					repo: repoName
+				});
+			} catch (deleteError) {
+				console.error('Failed to clean up repository after error:', deleteError);
+			}
+			throw error;
+		}
 	} catch (error) {
 		console.error('Error:', error);
 		return json(
 			{
-				error: error.message || 'Failed to commit files',
-				details: error.response?.data?.errors
+				error: error.message || 'Failed to create repository',
+				status: 'error',
+				details: error.response?.data?.errors,
+				action: 'Please try again or contact support if the issue persists'
 			},
-			{ status: 500 }
+			{ status: error.status || 500 }
 		);
 	}
 }

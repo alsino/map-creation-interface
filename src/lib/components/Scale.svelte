@@ -11,8 +11,6 @@
 
 	export let mapConfig;
 
-	$: console.log('mapConfig', mapConfig);
-
 	// Add the static values from the mapConfig if available
 	$: colorBarFirstValue = mapConfig.overrideScaleValues ? mapConfig.colorBarFirstValue : scaleMin;
 	$: colorBarLastValue = mapConfig.overrideScaleValues ? mapConfig.colorBarLastValue : scaleMax;

@@ -15,33 +15,54 @@ async function waitForRepo(octokit, owner, repo, maxAttempts = 5) {
 			return data;
 		} catch (error) {
 			console.log(`Attempt ${i + 1} failed:`, error.message);
-			if (i === maxAttempts - 1) throw error;
-			// Wait 2 seconds between attempts
+			if (i === maxAttempts - 1)
+				throw new Error(`Failed to find repository after ${maxAttempts} attempts`);
 			await new Promise((resolve) => setTimeout(resolve, 2000));
 		}
 	}
 }
 
 export async function POST({ request }) {
-	const { repoName } = await request.json();
-
+	// Validate environment variables
 	if (!VERCEL_TOKEN || !GITHUB_TOKEN || !GITHUB_USERNAME) {
-		return json({ error: 'Missing required environment variables' }, { status: 500 });
+		console.error('Missing environment variables');
+		return json(
+			{
+				error: 'Missing required environment variables',
+				details: 'Please check VERCEL_TOKEN, GITHUB_TOKEN, and GITHUB_USERNAME'
+			},
+			{ status: 500 }
+		);
+	}
+
+	// Validate request body
+	let repoName;
+	try {
+		const body = await request.json();
+		repoName = body.repoName;
+		if (!repoName) throw new Error('Repository name is required');
+	} catch (error) {
+		return json(
+			{
+				error: 'Invalid request body',
+				details: error.message
+			},
+			{ status: 400 }
+		);
 	}
 
 	try {
 		console.log('Starting Vercel deployment process...');
 
-		// Initialize Octokit
+		// Initialize Octokit and get repo
 		const octokit = new Octokit({ auth: GITHUB_TOKEN });
-
-		// Wait for repo to be available and get its ID
 		const repo = await waitForRepo(octokit, GITHUB_USERNAME, repoName);
-		if (!repo) {
-			throw new Error('Failed to fetch repository');
+
+		if (!repo || !repo.id) {
+			throw new Error('Failed to get valid repository data');
 		}
 
-		// Create Vercel project with all required environment variables
+		// Create Vercel project
 		const projectResponse = await fetch('https://api.vercel.com/v9/projects', {
 			method: 'POST',
 			headers: {
@@ -50,7 +71,7 @@ export async function POST({ request }) {
 			},
 			body: JSON.stringify({
 				name: repoName,
-				framework: 'svelte', // Change this from 'sveltekit' to 'svelte'
+				framework: 'svelte',
 				gitRepository: {
 					type: 'github',
 					repo: `${GITHUB_USERNAME}/${repoName}`,
@@ -58,7 +79,7 @@ export async function POST({ request }) {
 				},
 				buildCommand: 'npm run build',
 				devCommand: 'npm run dev',
-				outputDirectory: '.svelte-kit', // This is important for SvelteKit projects
+				outputDirectory: '.svelte-kit',
 				environmentVariables: [
 					{
 						key: 'GITHUB_TOKEN',
@@ -83,10 +104,36 @@ export async function POST({ request }) {
 		});
 
 		const projectData = await projectResponse.json();
-		console.log('Project creation response:', projectData);
 
-		if (!projectResponse.ok) {
+		if (!projectResponse.ok || !projectData.id) {
 			throw new Error(projectData.error?.message || 'Failed to create Vercel project');
+		}
+
+		// Get project domains
+		let domainsData;
+		try {
+			const domainsResponse = await fetch(
+				`https://api.vercel.com/v9/projects/${projectData.id}/domains`,
+				{
+					headers: {
+						Authorization: `Bearer ${VERCEL_TOKEN}`,
+						'Content-Type': 'application/json'
+					}
+				}
+			);
+
+			if (!domainsResponse.ok) {
+				throw new Error('Failed to fetch domains');
+			}
+
+			domainsData = await domainsResponse.json();
+
+			if (!domainsData.domains || domainsData.domains.length === 0) {
+				throw new Error('No domains found for project');
+			}
+		} catch (error) {
+			console.error('Domain fetch error:', error);
+			// Continue with deployment even if domain fetch fails
 		}
 
 		// Create deployment
@@ -109,25 +156,28 @@ export async function POST({ request }) {
 		});
 
 		const deployData = await deployResponse.json();
-		console.log('Deployment response:', deployData);
 
-		if (!deployResponse.ok) {
-			throw new Error(deployData.error?.message || 'Failed to create deployment');
+		if (!deployResponse.ok || !deployData) {
+			throw new Error(deployData?.error?.message || 'Failed to create deployment');
 		}
+
+		// Construct production URL only if we successfully got domain data
+		const domainName = domainsData?.domains[0]?.name;
+		const productionUrl = domainName ? `https://${domainName}` : null;
 
 		return json({
 			message: 'Project created and deployment initiated',
-			projectUrl: projectData.link,
-			deploymentUrl: deployData.url
+			deploymentUrl: deployData.url,
+			projectUrl: productionUrl
 		});
 	} catch (error) {
-		console.error('Error:', error);
+		console.error('Deployment error:', error);
 		return json(
 			{
 				error: error.message || 'Failed to deploy',
-				details: error.response?.data
+				details: error.response?.data || error.stack
 			},
-			{ status: 500 }
+			{ status: error.status || 500 }
 		);
 	}
 }
