@@ -1,5 +1,4 @@
 <script>
-	// import { config } from '$lib/stores/config-features';
 	import { MOUSE } from '$lib/stores/shared';
 	import { onMount } from 'svelte';
 	import { CENTER_ON } from '$lib/stores/shared';
@@ -71,8 +70,6 @@
 	export let extraInfoLinks;
 	export let mapConfig;
 
-	// $: console.log('mapConfig', mapConfig);
-
 	$: countryNames = countryNameTranslations[$selectedLanguage.value];
 
 	$: selectedCountryNameTranslated = countryNames.filter((item) => {
@@ -99,8 +96,8 @@
 	let tooltipHeight;
 	let tooltipWidth;
 
-	let graticules;
-	let countriesAll;
+	let graticules = null;
+	let countriesAll = null;
 	let countriesWithCsvImport;
 	let countriesWithExtraInfo;
 	let hoveredCountry;
@@ -123,6 +120,7 @@
 	let colorScheme;
 	let clusters;
 
+	// Set up color scale based on dataset type
 	$: if (mapConfig.datasetType == 'values') {
 		colorScale = scaleQuantile();
 	} else if (mapConfig.datasetType == 'binary') {
@@ -131,7 +129,7 @@
 		};
 	}
 
-	// Reactive declarations
+	// Reactive declarations for color scheme
 	$: colorScaleType = mapConfig.colourSchemeType;
 	$: n = mapConfig.colourSchemeClasses;
 
@@ -145,13 +143,28 @@
 				: colorSchemeMap[colorScaleType][mapConfig.colourScheme]
 			: colorSchemeMap['sequential'].red;
 
-	// And add this reactive statement after it to force the color scale to update:
+	// Calculate data extent for colorScale
+	$: extentArray = mapConfig?.parsedData
+		? mapConfig.parsedData
+				.map((item) => item?.value)
+				.filter((value) => value != null && !isNaN(+value))
+		: [];
+
+	// Update color scale and related values
 	$: {
-		if (mapConfig.datasetType === 'values' && colorScheme) {
+		if (extentArray.length === 0) {
+			// console.warn('No valid data values found in extentArray.');
+			clusters = [];
+		} else if (mapConfig.datasetType === 'values' && colorScheme) {
 			colorScale.domain(extent(extentArray)).range(colorScheme);
+			// console.log('extentArray', extentArray);
 			clusters = colorScale.quantiles();
+			scaleMin = min(extentArray);
+			scaleMax = max(extentArray);
 		}
 	}
+
+	$: mapConfig.parsedData && mergeData();
 
 	// Color scheme map, with a fallback for missing classes (fallback to 5 classes)
 	$: colorSchemeMap = {
@@ -202,85 +215,42 @@
 	}
 
 	async function fetchGeoData() {
-		const res = await fetch(`/data/geodata/europe-20m.json`)
-			.then((response) => response.json())
-			.then(function (data) {
-				countriesAll = feature(data, data.objects.cntrg);
-				graticules = feature(data, data.objects.gra);
+		try {
+			const response = await fetch(`/data/geodata/europe-20m.json`);
+			const data = await response.json();
 
-				projection.fitExtent(
-					[
-						[paddingMap, paddingMap],
-						[width - paddingMap, height - paddingMap]
-					],
-					countriesAll
-				);
-			});
-	}
+			// Set the data first
+			countriesAll = feature(data, data.objects.cntrg);
+			graticules = feature(data, data.objects.gra);
 
-	// async function fetchCSV() {
-	// 	const res = await csv('/data/thematic/data.csv')
-	// 		.then(function (data) {
-	// 			// Parse numbers as integers
-	// 			data.forEach(function (d) {
-	// 				if (d.value !== 'null') {
-	// 					d['value'] = +d['value'];
-	// 				} else {
-	// 					d['value'] = null;
-	// 				}
-	// 			});
+			// Then set up projection
+			projection.fitExtent(
+				[
+					[paddingMap, paddingMap],
+					[width - paddingMap, height - paddingMap]
+				],
+				countriesAll
+			);
 
-	// 			let extentArray = data.map((item) => {
-	// 				return item.value;
-	// 			});
-	// 			csvData.set(data);
-
-	// 			// Set color scale domain and range
-	// 			if (mapConfig.datasetType == 'values') {
-	// 				colorScale.domain(extent(extentArray)).range(colorScheme);
-	// 				clusters = colorScale.quantiles();
-	// 				scaleMin = min(extentArray);
-	// 				scaleMax = max(extentArray);
-	// 			} else {
-	// 				clusters = [];
-	// 			}
-	// 		})
-	// 		.catch((error) => console.error('error', error));
-	// }
-
-	$: mapConfig.parsedData && mergeData();
-	// $: console.log('mapConfig.parsedData', mapConfig.parsedData);
-
-	// Calculate data extent for colorScale
-	let extentArray = mapConfig?.parsedData
-		? mapConfig.parsedData
-				.map((item) => item?.value)
-				.filter((value) => value != null && !isNaN(+value))
-		: [];
-
-	// console.log('Extent Array (calculated once):', extentArray);
-
-	$: {
-		if (extentArray.length === 0) {
-			console.warn('No valid data values found in extentArray.');
-		} else if (mapConfig.datasetType === 'values') {
-			if (colorScale?.domain && colorScale?.range && Array.isArray(colorScheme)) {
-				colorScale.domain(extent(extentArray)).range(colorScheme);
-				clusters = colorScale.quantiles();
-				scaleMin = min(extentArray);
-				scaleMax = max(extentArray);
-			} else {
-				console.error('Invalid colorScheme or colorScale configuration.');
-			}
-		} else {
-			clusters = [];
+			// Only set dataReady after everything is initialized
+			$dataReady = true;
+			// console.log('Geo data loaded:', { countriesAll, graticules });
+		} catch (error) {
+			console.error('Error loading geo data:', error);
 		}
 	}
 
 	function mergeData() {
-		if (!mapConfig.parsedData) return;
+		if (!mapConfig.parsedData || !countriesAll) return;
 
-		let csvTransformed = mapConfig.parsedData.reduce(
+		if (!mapConfig.parsedData) {
+			countriesAll.features.forEach((item) => (item.csvImport = null));
+			countriesWithCsvImport = [];
+			countriesWithExtraInfo = { type: 'FeatureCollection', features: [] };
+			return;
+		}
+
+		const csvTransformed = mapConfig.parsedData.reduce(
 			(obj, item) => ({
 				...obj,
 				[item.id]: {
@@ -300,63 +270,63 @@
 			{}
 		);
 
-		if (countriesAll) {
-			countriesAll.features.map((item) => {
-				if (Object.keys(csvTransformed).includes(item.properties.id)) {
-					item.csvImport = csvTransformed[item.properties.id];
-				}
-			});
+		// Reset and update all countries
+		countriesAll.features.forEach((item) => {
+			item.csvImport = Object.keys(csvTransformed).includes(item.properties.id)
+				? csvTransformed[item.properties.id]
+				: null;
+		});
 
-			countriesWithCsvImport = countriesAll.features.filter((item) => {
-				return item.csvImport;
-			});
+		countriesWithCsvImport = countriesAll.features.filter((item) => item.csvImport);
 
-			countriesWithExtraInfo = countriesWithCsvImport.filter((item) => {
-				return item.csvImport.extraInfo == true;
-			});
-
-			countriesWithExtraInfo = {
-				type: 'FeatureCollection',
-				features: countriesWithExtraInfo
-			};
-
-			// console.log('countriesWithCsvImport', countriesWithCsvImport);
-			$dataReady = true;
-		}
+		countriesWithExtraInfo = {
+			type: 'FeatureCollection',
+			features: countriesWithCsvImport.filter((item) => item.csvImport.extraInfo)
+		};
 	}
 
 	onMount(async () => {
 		await fetchGeoData();
-		// await fetchCSV();
-		await mergeData();
+		// await mergeData();
 	});
 
 	function getFill(feature) {
-		// console.log('feature', feature);
-		let csvData = feature.csvImport;
-
-		if (csvData) {
-			// No data, because country not in Europe: => value: undefined
-			if (csvData.value !== undefined) {
-				// No data because not available for this country => value: null
-				if (csvData.value !== null) {
-					return colorScale(csvData.value);
-				} else {
-					return '#CAD1D9';
-				}
-			}
-		} else {
-			return '#E0E0E0';
+		// If no parsed data, or empty data, return light gray
+		if (!mapConfig.parsedData || mapConfig.parsedData.length === 0) {
+			return '#E5E7EB';
 		}
+
+		let csvData = feature.csvImport;
+		// console.log(feature);
+
+		// For binary data type
+		if (mapConfig.datasetType === 'binary') {
+			return csvData?.value ? '#2B3163' : '#F4F4F4';
+		}
+
+		// For values data type
+		if (csvData) {
+			if (csvData.value !== undefined && csvData.value !== null) {
+				const color = colorScale(csvData.value);
+				// console.log('color', color);
+				return color;
+			}
+			return '#CAD1D9'; // For null values
+		}
+
+		return '#E0E0E0'; // For countries without data
 	}
 
 	function getStroke(feature) {
+		// Always show strokes, even when no data
+		if (!mapConfig.parsedData || mapConfig.parsedData.length === 0) {
+			return '#cdcdcd'; // Default stroke color
+		}
+
 		let csvData = feature.csvImport;
 
 		if (csvData) {
-			// No data, because country not in Europe: => value: undefined
 			if (csvData.value !== undefined) {
-				// No data because not available for this country => value:
 				if (csvData.value !== null) {
 					if (csvData.extraInfo) {
 						// return 'orange';
@@ -366,12 +336,16 @@
 					return 'white';
 				}
 			}
-		} else {
-			return '#cdcdcd';
 		}
+		return '#cdcdcd';
 	}
 
 	function getClass(feature) {
+		// If no data, make all paths non-interactive
+		if (!mapConfig.parsedData || mapConfig.parsedData.length === 0) {
+			return 'noPointer';
+		}
+
 		let csvData = feature.csvImport;
 
 		if (csvData) {
@@ -380,9 +354,8 @@
 			} else {
 				return 'noPointer';
 			}
-		} else {
-			return 'noPointer';
 		}
+		return 'noPointer';
 	}
 
 	function handleMouseMove(e) {
@@ -464,27 +437,29 @@
 	// $: console.log('countriesAll', countriesAll);
 </script>
 
-{#if $dataReady}
+{#if $dataReady && countriesAll && countriesAll.features}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div id="map" class="relative h-full w-full" on:mousemove={handleMouseMove}>
 		{#if mapConfig.datasetType == 'values'}
-			{#if mapConfig.scaleBarAvailable}
+			{#if mapConfig.scaleBarAvailable && mapConfig.parsedData && mapConfig.parsedData.length > 0}
 				<Scale classes={colorScheme} {clusters} {scaleMin} {scaleMax} {mapConfig} />
 			{/if}
 		{/if}
 
-		{#if mapConfig.legendAvailable}
+		{#if mapConfig.legendAvailable && mapConfig.parsedData && mapConfig.parsedData.length > 0}
 			<Legend {legend} />
 		{/if}
 
 		<svg preserveAspectRatio="xMidYMid meet" viewBox="0 0 600 600" class="h-full w-full">
 			<!-- graticules (lines) -->
-			{#each graticules.features as feature, index}
-				<path d={path(feature)} stroke="#cfcfcf" fill="transparent" class="noPointer" />
-			{/each}
+			{#if graticules?.features}
+				{#each graticules.features as feature}
+					<path d={path(feature)} stroke="#cfcfcf" fill="transparent" class="noPointer" />
+				{/each}
+			{/if}
 
 			<!-- countriesAll -->
-			{#each countriesAll.features as feature, index}
+			{#each countriesAll.features as feature}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<path
 					d={path(feature)}
@@ -497,22 +472,24 @@
 				/>
 			{/each}
 
-			<!-- countriesWithExtraInfo added for the  -->
-			{#each countriesWithExtraInfo.features as feature, index}
-				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<path
-					d={path(feature)}
-					stroke={getStroke(feature)}
-					fill={getFill(feature)}
-					class={mapConfig.datasetType == 'values'
-						? 'country-extra-info-values'
-						: 'country-extra-info-binary'}
-					on:mouseenter={() => handleMouseEnter(feature)}
-					on:mouseleave={() => handleMouseLeave(feature)}
-					on:click={() => handleMouseClick(feature)}
-					on:touchstart={() => handleTouchStart(feature)}
-				/>
-			{/each}
+			<!-- countriesWithExtraInfo -->
+			{#if countriesWithExtraInfo?.features}
+				{#each countriesWithExtraInfo.features as feature}
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<path
+						d={path(feature)}
+						stroke={getStroke(feature)}
+						fill={getFill(feature)}
+						class={mapConfig.datasetType == 'values'
+							? 'country-extra-info-values'
+							: 'country-extra-info-binary'}
+						on:mouseenter={() => handleMouseEnter(feature)}
+						on:mouseleave={() => handleMouseLeave(feature)}
+						on:click={() => handleMouseClick(feature)}
+						on:touchstart={() => handleTouchStart(feature)}
+					/>
+				{/each}
+			{/if}
 		</svg>
 
 		<CountryInfo
@@ -523,8 +500,7 @@
 			{tooltip}
 		/>
 
-		<!-- only show tooltip for countries with no extraInfo -->
-		<!-- {#if $MOUSE.tooltip.extraInfo == false} -->
+		<!-- Tooltip -->
 		<div
 			class="tooltip p-3 text-sm {tooltipVisible ? 'active' : ''}"
 			style="top: {$MOUSE.y - tooltipHeight}px; left:{tooltipPositionX}px;"
@@ -545,7 +521,9 @@
 							{:else if mapConfig.datasetUnit == 'fullNumbers'}
 								<span class="font-bold">{$MOUSE.tooltip.value}</span>
 							{/if}
-							<span>{tip.label}</span>
+							{#if mapConfig.customUnitLabelAvailable && mapConfig.customUnitLabel !== ''}
+								<span>{mapConfig.customUnitLabel}</span>
+							{/if}
 						</div>
 					{/if}
 					{#if $MOUSE.tooltip.extraInfo == true}
@@ -554,8 +532,6 @@
 				{/each}
 			</div>
 		</div>
-
-		<!-- {/if} -->
 	</div>
 {/if}
 

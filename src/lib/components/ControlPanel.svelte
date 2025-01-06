@@ -4,11 +4,72 @@
 	import { dataReady } from '$lib/stores/shared';
 	import { csvParse } from 'd3-dsv';
 
-	// const colorSchemeTypes = ['sequential', 'diverging'];
-	// const colorSchemes = {
-	// 	sequential: ['blue', 'green', 'gray', 'orange', 'purple', 'red', 'blue-green', 'blue-purple'],
-	// 	diverging: ['brown-blue-green', 'purple-green', 'red-blue', 'red-gray', 'red-yellow-blue']
-	// };
+	// Add at the top of script
+	const EU_COUNTRY_CODES = new Set([
+		'AT',
+		'BE',
+		'BG',
+		'CY',
+		'CZ',
+		'DE',
+		'DK',
+		'EE',
+		'EL',
+		'ES',
+		'FI',
+		'FR',
+		'HR',
+		'HU',
+		'IE',
+		'IT',
+		'LT',
+		'LU',
+		'LV',
+		'MT',
+		'NL',
+		'PL',
+		'PT',
+		'RO',
+		'SE',
+		'SI',
+		'SK'
+	]);
+
+	let csvError = null;
+	let csvWarnings = [];
+	const REQUIRED_COLUMNS = ['country', 'id', 'value', 'extraInfo'];
+	const CSV_EXAMPLE = `country,id,value,extraInfo
+Austria,AT,35,false
+Belgium,BE,83,false`;
+
+	const EXAMPLE_DATA = `country,id,value,extraInfo,text_content,link_text,link_url_target,audio_url_1,audio_url_2,audio_url_3,image_url_source,image_url_target,video_url
+Austria,AT,0.035,FALSE,,,,,,,,,
+Belgium,BE,0.083,FALSE,,,,,,,,,
+Bulgaria,BG,-0.108,FALSE,,,,,,,,,
+Cyprus,CY,0.157,FALSE,,,,,,,,,
+Czechia,CZ,-0.002,FALSE,,,,,,,,,
+Germany,DE,-0.040,FALSE,,,,,,,,,
+Denmark,DK,0.036,FALSE,,,,,,,,,
+Estonia,EE,0.047,FALSE,,,,,,,,,
+Greece,EL,0.006,FALSE,,,,,,,,,
+Spain,ES,0.132,FALSE,,,,,,,,,
+Finland,FI,0.069,FALSE,,,,,,,,,
+France,FR,0.045,FALSE,,,,,,,,,
+Croatia,HR,0.000,FALSE,,,,,,,,,
+Hungary,HU,-0.019,FALSE,,,,,,,,,
+Ireland,IE,0.243,FALSE,,,,,,,,,
+Italy,IT,0.026,FALSE,,,,,,,,,
+Lithuania,LT,-0.072,FALSE,,,,,,,,,
+Luxembourg,LU,0.239,FALSE,,,,,,,,,
+Latvia,LV,0.013,FALSE,,,,,,,,,
+Malta,MT,0.245,FALSE,,,,,,,,,
+Netherlands,NL,-0.001,FALSE,,,,,,,,,
+Poland,PL,0.027,FALSE,,,,,,,,,
+Portugal,PT,-0.004,FALSE,,,,,,,,,
+Romania,RO,0.090,FALSE,,,,,,,,,
+Sweden,SE,0.202,FALSE,,,,,,,,,
+Slovenia,SI,-0.020,FALSE,,,,,,,,,
+Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 
 	// Replace the current colorSchemes declaration with this:
 	const colorSchemeTypes = ['sequential', 'diverging'];
@@ -76,13 +137,15 @@
 	let colorBarFirstValue = $mapConfig.colorBarFirstValue;
 	let colorBarLastValue = $mapConfig.colorBarLastValue;
 	let parsedData = $mapConfig.parsedData;
+	let customUnitLabelAvailable = $mapConfig.customUnitLabelAvailable;
+	let customUnitLabel = $mapConfig.customUnitLabel;
 
 	$: mapConfig.set({
 		title: title,
 		subtitle: subtitle,
 		colourSchemeClasses: colourSchemeClasses,
 		data: data,
-		parsedData: parsedData,
+		parsedData: data?.trim() ? parsedData || $mapConfig.parsedData : null,
 		datasetType: datasetType,
 		datasetUnit: datasetUnit,
 		percentRounded: percentRounded,
@@ -107,19 +170,117 @@
 		legend3Color: legend3Color,
 		legend4Color: legend4Color,
 		colorBarFirstValue: colorBarFirstValue,
-		colorBarLastValue: colorBarLastValue
+		colorBarLastValue: colorBarLastValue,
+		customUnitLabelAvailable: customUnitLabelAvailable,
+		customUnitLabel: customUnitLabel
 	});
 
 	$: data && handleCSVChange(data);
 
 	function handleCSVChange(csvText) {
-		const parsed = csvParse(csvText, (d) => ({
-			...d,
-			value: d.value === 'null' ? null : +d.value,
-			extraInfo: d.extraInfo.toLowerCase() === 'true'
-		}));
+		csvError = null;
+		csvWarnings = [];
 
-		mapConfig.update((m) => ({ ...m, parsedData: parsed }));
+		if (!csvText?.trim()) {
+			mapConfig.update((m) => ({
+				...m,
+				parsedData: null,
+				clusters: [],
+				colorScale: null
+			}));
+			return;
+		}
+
+		try {
+			const parsed = csvParse(csvText);
+
+			// Check for required columns
+			const missingColumns = REQUIRED_COLUMNS.filter((col) => !parsed.columns.includes(col));
+			if (missingColumns.length > 0) {
+				csvError = `Missing required columns: ${missingColumns.join(', ')}`;
+				mapConfig.update((m) => ({ ...m, parsedData: null })); // Reset map data
+				return;
+			}
+
+			// Rest of your existing validation code...
+			const seenIds = new Set();
+
+			// Validate data types and handle empty values
+			const validatedData = parsed.map((d, index) => {
+				const rowNum = index + 1;
+
+				// Your existing validation code...
+				Object.keys(d).forEach((key) => {
+					if (typeof d[key] === 'string') {
+						d[key] = d[key].trim();
+					}
+				});
+
+				// All your existing validations...
+				if (!d.country) {
+					throw new Error(`Row ${rowNum}: Missing country name`);
+				}
+
+				if (!/^[a-zA-Z\s-]+$/.test(d.country)) {
+					throw new Error(`Row ${rowNum}: Country name contains invalid characters`);
+				}
+
+				if (!d.id) {
+					throw new Error(`Row ${rowNum}: Missing ID`);
+				}
+
+				if (!EU_COUNTRY_CODES.has(d.id)) {
+					throw new Error(
+						`Row ${rowNum}: Invalid country code "${d.id}". Must be a valid EU country code.`
+					);
+				}
+
+				if (seenIds.has(d.id)) {
+					throw new Error(`Row ${rowNum}: Duplicate country code "${d.id}"`);
+				}
+				seenIds.add(d.id);
+
+				if (d.value !== 'null' && d.value !== '') {
+					const numValue = +d.value;
+					if (isNaN(numValue)) {
+						throw new Error(
+							`Row ${rowNum}: Invalid value "${d.value}" - must be a number or "null"`
+						);
+					}
+				}
+
+				const extraInfo = d.extraInfo.toLowerCase();
+				if (!['true', 'false', ''].includes(extraInfo)) {
+					throw new Error(`Row ${rowNum}: extraInfo must be "true" or "false"`);
+				}
+
+				return {
+					...d,
+					value: d.value === 'null' || d.value === '' ? null : +d.value,
+					extraInfo: extraInfo === 'true'
+				};
+			});
+
+			// Check for missing EU countries
+			const includedCountries = new Set(validatedData.map((d) => d.id));
+			const missingEUCountries = [...EU_COUNTRY_CODES].filter(
+				(code) => !includedCountries.has(code)
+			);
+			if (missingEUCountries.length > 0) {
+				csvWarnings.push(`Missing data for countries: ${missingEUCountries.join(', ')}`);
+			}
+
+			// After validation succeeds, update mapConfig with fresh state
+			mapConfig.update((m) => ({
+				...m,
+				parsedData: validatedData,
+				clusters: [], // Reset clusters
+				colorScale: null // Reset color scale
+			}));
+		} catch (error) {
+			csvError = `Error parsing CSV: ${error.message}`;
+			mapConfig.update((m) => ({ ...m, parsedData: null }));
+		}
 	}
 
 	function handleColorOrderChange(value) {
@@ -162,9 +323,39 @@
 			id="data"
 			name="data"
 			bind:value={data}
-			class="h-32 w-full rounded border p-2"
+			class="h-32 w-full rounded border p-2 {csvError
+				? 'border-red-500'
+				: csvWarnings.length
+					? 'border-yellow-500'
+					: ''}"
 			placeholder="Paste CSV data here"
 		/>
+		<button
+			on:click={() => (data = EXAMPLE_DATA)}
+			class="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+			type="button"
+		>
+			Load Example Data
+		</button>
+		{#if csvError}
+			<div class="mt-1 text-sm text-red-600">
+				<p>{csvError}</p>
+			</div>
+		{/if}
+		{#if csvWarnings.length > 0}
+			<div class="mt-1 text-sm text-yellow-600">
+				{#each csvWarnings as warning}
+					<p>⚠️ {warning}</p>
+				{/each}
+			</div>
+		{/if}
+		<div class="mt-1 text-xs text-gray-500">
+			<p>Required columns: {REQUIRED_COLUMNS.join(', ')}</p>
+			<details class="mt-1">
+				<summary class="cursor-pointer">Show format example</summary>
+				<pre class="mt-2 rounded bg-gray-100 p-2">{CSV_EXAMPLE}</pre>
+			</details>
+		</div>
 	</div>
 
 	<div class="space-y-2">
@@ -230,8 +421,27 @@
 			<div class="space-y-2">
 				<label class="flex items-center">
 					<input type="checkbox" bind:checked={percentRounded} class="mr-2" />
-					Round Percentages
+					Round Percentages (to nearest whole number)
 				</label>
+			</div>
+		{/if}
+
+		<div class="space-y-2">
+			<label class="flex items-center">
+				<input type="checkbox" bind:checked={customUnitLabelAvailable} class="mr-2" />
+				Custom Tooltip Label
+			</label>
+		</div>
+
+		{#if customUnitLabelAvailable}
+			<div class="space-y-2">
+				<input
+					id="data-link"
+					name="data-link"
+					bind:value={customUnitLabel}
+					placeholder="e.g. of GDP"
+					class="w-full rounded border p-2"
+				/>
 			</div>
 		{/if}
 
@@ -257,13 +467,6 @@
 					{/each}
 				</select>
 			</div>
-
-			<!-- <div class="space-y-2">
-				<label class="flex items-center">
-					<input type="checkbox" bind:checked={colourSchemeReverse} class="mr-2" />
-					Reverse Color Scheme
-				</label>
-			</div> -->
 
 			<div class="space-y-2">
 				<label>Color Scheme Order</label>
@@ -303,6 +506,34 @@
 				/>
 			</div>
 		{/if}
+	</div>
+
+	<!-- Display Options -->
+	<div class="space-y-4 border-t pt-4">
+		<h3 class="font-bold">Display Options</h3>
+
+		<div class="space-y-2">
+			<label class="flex items-center">
+				<input type="checkbox" bind:checked={headlineAvailable} class="mr-2" />
+				Show Headline
+			</label>
+			<label class="flex items-center">
+				<input type="checkbox" bind:checked={subheadlineAvailable} class="mr-2" />
+				Show Subheadline
+			</label>
+			<label class="flex items-center">
+				<input type="checkbox" bind:checked={tooltipAvailable} class="mr-2" />
+				Show Tooltips
+			</label>
+			<label class="flex items-center">
+				<input type="checkbox" bind:checked={legendAvailable} class="mr-2" />
+				Show Legend
+			</label>
+			<label class="flex items-center">
+				<input type="checkbox" bind:checked={scaleBarAvailable} class="mr-2" />
+				Show Scale Bar
+			</label>
+		</div>
 
 		{#if datasetType === 'values' && scaleBarAvailable}
 			<div class="space-y-4 border-t pt-4">
@@ -337,39 +568,4 @@
 			</div>
 		{/if}
 	</div>
-
-	<!-- Display Options -->
-	<div class="space-y-4 border-t pt-4">
-		<h3 class="font-bold">Display Options</h3>
-
-		<div class="space-y-2">
-			<label class="flex items-center">
-				<input type="checkbox" bind:checked={headlineAvailable} class="mr-2" />
-				Show Headline
-			</label>
-			<label class="flex items-center">
-				<input type="checkbox" bind:checked={subheadlineAvailable} class="mr-2" />
-				Show Subheadline
-			</label>
-			<label class="flex items-center">
-				<input type="checkbox" bind:checked={tooltipAvailable} class="mr-2" />
-				Show Tooltips
-			</label>
-			<label class="flex items-center">
-				<input type="checkbox" bind:checked={scaleBarAvailable} class="mr-2" />
-				Show Scale Bar
-			</label>
-			<label class="flex items-center">
-				<input type="checkbox" bind:checked={legendAvailable} class="mr-2" />
-				Show Legend
-			</label>
-		</div>
-	</div>
-
-	<!-- <button
-		class="w-full rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-		on:click={handleUpdate}
-	>
-		Update Map
-	</button> -->
 </div>
