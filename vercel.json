@@ -1,7 +1,0 @@
-{
-	"routes": [
-		{ "handle": "filesystem" },
-		{ "src": "/fullscreen", "dest": "/" },
-		{ "src": "/(.*)", "dest": "/" }
-	]
-}
