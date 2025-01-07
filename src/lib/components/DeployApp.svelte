@@ -1,9 +1,10 @@
 <script>
+	// Update near where you set deploymentUrl
+	// import { isFullscreen } from '$lib/stores/view-state';
 	import { mapConfig } from '$lib/stores/config-map';
 	let repoName = '';
 	let errorMessage = null;
 	let successMessage = null;
-	let warningMessage = null;
 	let isLoading = false;
 	let repoUrl = null;
 	let deploymentUrl = null;
@@ -19,7 +20,6 @@
 		isLoading = true;
 		errorMessage = null;
 		successMessage = null;
-		warningMessage = null;
 		repoUrl = null;
 		steps = steps.map((step) => ({ ...step, completed: false, current: false }));
 
@@ -43,7 +43,6 @@
 				current: step.id === 'create'
 			}));
 
-			// Create and configure repository
 			const response = await fetch('/api/commit-component', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -51,10 +50,9 @@
 			});
 
 			const data = await response.json();
+			if (!response.ok) throw new Error(data.error || 'Failed to create repository');
 
-			if (!response.ok) {
-				throw new Error(data.error || 'Failed to create repository');
-			}
+			repoUrl = data.repoUrl;
 
 			// Update steps for deployment
 			steps = steps.map((step) => ({
@@ -63,7 +61,6 @@
 				current: step.id === 'deploy'
 			}));
 
-			// Deploy to Vercel using existing endpoint
 			const deployResponse = await fetch('/api/deploy-vercel', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -71,10 +68,9 @@
 			});
 
 			const deployData = await deployResponse.json();
+			if (!deployResponse.ok) throw new Error(deployData.error || 'Failed to deploy to Vercel');
 
-			if (!deployResponse.ok) {
-				throw new Error(deployData.error || 'Failed to deploy to Vercel');
-			}
+			deploymentUrl = `${deployData.projectUrl}?view=fullscreen`;
 
 			// All steps completed
 			steps = steps.map((step) => ({
@@ -84,19 +80,9 @@
 			}));
 
 			successMessage = 'Successfully deployed!';
-			deploymentUrl = deployData.projectUrl; // This is the permanent project URL from projectData.link
-			repoUrl = data.repoUrl;
-
-			// Add deployment URL to success message
-			if (deployData.projectUrl) {
-				successMessage += `\nProject URL: ${deployData.projectUrl}`;
-			}
 		} catch (error) {
 			errorMessage = error.message;
-			steps = steps.map((step) => ({
-				...step,
-				current: false
-			}));
+			steps = steps.map((step) => ({ ...step, current: false }));
 		} finally {
 			isLoading = false;
 		}
@@ -147,23 +133,33 @@
 		</div>
 	{/if}
 
+	{#if errorMessage}
+		<div class="mt-4 rounded bg-red-50 p-4 text-red-700">
+			<p class="font-bold">Error</p>
+			<p>{errorMessage}</p>
+		</div>
+	{/if}
+
 	{#if successMessage}
 		<div class="mt-4 rounded bg-green-50 p-4 text-green-700">
 			<p class="font-bold">Success</p>
-			<p>Successfully deployed!</p>
+			<p>{successMessage}</p>
 			<div class="mt-2 space-y-2">
 				{#if deploymentUrl}
 					<p>
 						Your map will be available in a few minutes at <a
 							href={deploymentUrl}
 							target="_blank"
+							rel="noopener noreferrer"
 							class="underline">{deploymentUrl}</a
 						>
 					</p>
 				{/if}
 				{#if repoUrl}
 					<p>
-						<a href={repoUrl} target="_blank" class="underline">View map repository</a>
+						<a href={repoUrl} target="_blank" rel="noopener noreferrer" class="underline"
+							>View map repository</a
+						>
 					</p>
 				{/if}
 			</div>
