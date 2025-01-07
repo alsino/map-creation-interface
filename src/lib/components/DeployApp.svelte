@@ -114,7 +114,7 @@
 				id="repoName"
 				bind:value={repoName}
 				disabled={isLoading}
-				placeholder="e.g. my-gdp-map"
+				placeholder="e.g. employment-tertiary-attainment"
 				class="w-full rounded border p-2"
 			/>
 		</div>

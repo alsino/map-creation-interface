@@ -128,14 +128,14 @@
 	}
 </script>
 
-<div class="h-screen {isFullscreen ? 'w-full' : 'w-1/2'}">
+<div class={isFullscreen ? 'h-screen w-full' : 'w-1/2'}>
 	<div
 		id="euranet-map"
-		class="flex h-full flex-col {isFullscreen ? 'p-0' : 'p-4'}"
+		class="h-full {isFullscreen ? 'p-0' : 'p-4'}"
 		bind:clientHeight={$APP_HEIGHT}
 		bind:clientWidth={innerWidth}
 	>
-		<header class="flex-none">
+		<header>
 			<div class="logo">
 				<img
 					src="./img/logo.png"
@@ -154,8 +154,8 @@
 			</div>
 		</header>
 
-		<div id="chart" class="mt-8 flex min-h-0 flex-1 flex-col">
-			<div id="chart-header" class="flex-none">
+		<div id="chart" class="mt-8 h-[calc(100%-theme(spacing.8)-theme(spacing.16))]">
+			<div id="chart-header">
 				{#if $mapConfig.headlineAvailable && $mapConfig.title}
 					<h1 class="text-xl font-bold">{$mapConfig.title}</h1>
 				{/if}
@@ -164,9 +164,9 @@
 				{/if}
 			</div>
 
-			<div id="chart-body" class="relative mt-4 min-h-0 flex-1">
+			<div id="chart-body" class="mt-4">
 				{#if legend && tooltip}
-					<div class="absolute inset-0">
+					<div class="wrapper">
 						<MapChoropleth
 							mapConfig={$mapConfig}
 							{legend}
@@ -178,26 +178,26 @@
 					</div>
 				{/if}
 			</div>
-		</div>
 
-		<div class="mt-2 flex-none text-xs">
-			{#if $mapConfig.textSource}
-				<div>
-					<span class="font-bold">Source: </span>
-					<span>{$mapConfig.textSource}</span>
-				</div>
-			{/if}
-			{#if $mapConfig.textNote}
-				<div>
-					<span class="font-bold">Note: </span>
-					<span>{$mapConfig.textNote}</span>
-				</div>
-			{/if}
-			{#if $mapConfig.linkDataAccess}
-				<div class="underline">
-					<a target="_blank" href={$mapConfig.linkDataAccess}>{textDataAccess}</a>
-				</div>
-			{/if}
+			<div class="mt-2 text-xs">
+				{#if $mapConfig.textSource}
+					<div>
+						<span class="font-bold">Source: </span>
+						<span>{$mapConfig.textSource}</span>
+					</div>
+				{/if}
+				{#if $mapConfig.textNote}
+					<div>
+						<span class="font-bold">Note: </span>
+						<span>{$mapConfig.textNote}</span>
+					</div>
+				{/if}
+				{#if $mapConfig.linkDataAccess}
+					<div class="underline">
+						<a target="_blank" href={$mapConfig.linkDataAccess}>{textDataAccess}</a>
+					</div>
+				{/if}
+			</div>
 		</div>
 	</div>
 </div>
@@ -231,9 +231,8 @@
 		background: white;
 	}
 
-	#chart-body {
-		position: relative;
+	.wrapper {
+		display: block;
 		width: 100%;
-		height: 100%;
 	}
 </style>
