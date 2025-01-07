@@ -439,7 +439,7 @@
 
 {#if $dataReady && countriesAll && countriesAll.features}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div id="map" class="relative h-full w-full" on:mousemove={handleMouseMove}>
+	<div id="map" class="relative" on:mousemove={handleMouseMove} bind:clientHeight={$MAP_WIDTH}>
 		{#if mapConfig.datasetType == 'values'}
 			{#if mapConfig.scaleBarAvailable && mapConfig.parsedData && mapConfig.parsedData.length > 0}
 				<Scale classes={colorScheme} {clusters} {scaleMin} {scaleMax} {mapConfig} />
@@ -450,7 +450,7 @@
 			<Legend {legend} />
 		{/if}
 
-		<svg preserveAspectRatio="xMidYMid meet" viewBox="0 0 600 600" class="h-full w-full">
+		<svg preserveAspectRatio="xMinYMid meet" viewBox="0 0 {width} {height}" class="">
 			<!-- graticules (lines) -->
 			{#if graticules?.features}
 				{#each graticules.features as feature}
@@ -540,14 +540,9 @@
 		position: relative;
 	}
 
-	/* svg {
-		width: 100%;
-		height: auto;
-	} */
 	svg {
 		width: 100%;
-		height: 100%;
-		display: block;
+		height: auto;
 	}
 
 	svg path {
