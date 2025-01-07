@@ -1,5 +1,6 @@
 <!-- src/lib/components/MapPanel.svelte -->
 <script>
+	import { page } from '$app/stores';
 	import { geoIdentity } from 'd3-geo';
 	import { feature } from 'topojson-client';
 	import { mapConfig } from '$lib/stores/config-map';
@@ -53,6 +54,9 @@
 			graticules: feature(data, data.objects.gra)
 		};
 	}
+
+	// Get the view parameter from the page store
+	$: isFullscreen = $page.url.searchParams.get('view') === 'fullscreen';
 
 	// Send map height to parent window
 	$: {
@@ -124,10 +128,10 @@
 	}
 </script>
 
-<div class="h-screen w-1/2 overflow-hidden">
+<div class="h-screen {isFullscreen ? 'w-full' : 'w-1/2'} overflow-hidden">
 	<div
 		id="euranet-map"
-		class="flex h-full flex-col p-4"
+		class="flex h-full flex-col {isFullscreen ? 'p-0' : 'p-4'}"
 		bind:clientHeight={$APP_HEIGHT}
 		bind:clientWidth={innerWidth}
 	>
