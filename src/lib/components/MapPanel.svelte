@@ -128,7 +128,7 @@
 	}
 </script>
 
-<div class="h-screen {isFullscreen ? 'w-full' : 'w-1/2'} overflow-hidden">
+<div class="h-screen {isFullscreen ? 'w-full' : 'w-1/2'}">
 	<div
 		id="euranet-map"
 		class="flex h-full flex-col {isFullscreen ? 'p-0' : 'p-4'}"
