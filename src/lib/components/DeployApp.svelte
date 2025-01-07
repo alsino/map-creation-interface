@@ -9,6 +9,22 @@
 	let repoUrl = null;
 	let deploymentUrl = null;
 
+	// Function to convert string to slug
+	function toSlug(str) {
+		return str
+			.toLowerCase()
+			.trim()
+			.replace(/[^\w\s-]/g, '') // Remove special characters
+			.replace(/[\s_]+/g, '-') // Replace spaces and underscores with hyphens
+			.replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+	}
+
+	// Updated embed code function with slug
+	function getEmbedCode(mapId, url) {
+		const slugifiedId = toSlug(mapId);
+		return `<iframe title="New Map" aria-label="Map" id="${slugifiedId}" src="${url}" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="624"></iframe><script type="text/javascript">window.addEventListener("message",e=>{if("${url}"!==e.origin)return;let t=e.data;if(t.height){document.getElementById("${slugifiedId}").height=t.height+"px"}},!1)<\/script>`;
+	}
+
 	let steps = [
 		{ id: 'validate', text: 'Validating repository name', completed: false, current: false },
 		{ id: 'create', text: 'Creating GitHub repository', completed: false, current: false },
@@ -98,7 +114,7 @@
 				id="repoName"
 				bind:value={repoName}
 				disabled={isLoading}
-				placeholder="Enter repository name"
+				placeholder="e.g. my-gdp-map"
 				class="w-full rounded border p-2"
 			/>
 		</div>
@@ -140,6 +156,7 @@
 		</div>
 	{/if}
 
+	<!-- Modified success message section with embed code -->
 	{#if successMessage}
 		<div class="mt-4 rounded bg-green-50 p-4 text-green-700">
 			<p class="font-bold">Success</p>
@@ -147,13 +164,34 @@
 			<div class="mt-2 space-y-2">
 				{#if deploymentUrl}
 					<p>
-						Your map will be available in a few minutes at <a
+						Your map will soon be available at: <a
 							href={deploymentUrl}
 							target="_blank"
 							rel="noopener noreferrer"
 							class="underline">{deploymentUrl}</a
 						>
 					</p>
+				{/if}
+
+				<!-- New embed code section -->
+				{#if deploymentUrl}
+					<div class="mt-4">
+						<p class="mb-2 font-bold">Embed code:</p>
+						<div class="relative">
+							<pre class="overflow-x-auto rounded bg-gray-100 p-3 text-sm">{getEmbedCode(
+									repoName,
+									deploymentUrl
+								)}</pre>
+							<button
+								class="absolute right-2 top-2 rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600"
+								on:click={() => {
+									navigator.clipboard.writeText(getEmbedCode(repoName, deploymentUrl));
+								}}
+							>
+								Copy
+							</button>
+						</div>
+					</div>
 				{/if}
 				{#if repoUrl}
 					<p>
