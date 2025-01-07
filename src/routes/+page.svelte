@@ -1,15 +1,12 @@
 <script>
     import { browser } from '$app/environment';
+    import { page } from '$app/stores';
     import ControlPanel from '$lib/components/ControlPanel.svelte';
     import MapPanel from '$lib/components/MapPanel.svelte';
     import DeployApp from '$lib/components/DeployApp.svelte';
 
-    let isFullscreen = false;
-
-    $: if (browser) {
-        const params = new URLSearchParams(window.location.search);
-        isFullscreen = params.get('view') === 'fullscreen';
-    }
+    // Get the view parameter from the page store instead of window.location
+    $: isFullscreen = $page.url.searchParams.get('view') === 'fullscreen';
 </script>
 
 <div class="flex h-screen">
