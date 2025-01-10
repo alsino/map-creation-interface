@@ -128,10 +128,13 @@
 	}
 </script>
 
-<!-- Replace the outer div -->
-<div class={isFullscreen ? 'w-full' : 'w-1/2'}>
-	<!-- Removed h-screen -->
-	<div id="euranet-map" class={isFullscreen ? 'p-0' : 'p-4'} bind:clientWidth={innerWidth}>
+<div class={isFullscreen ? 'h-screen w-full' : 'w-1/2'}>
+	<div
+		id="euranet-map"
+		class="h-full {isFullscreen ? 'p-0' : 'p-4'}"
+		bind:clientHeight={$APP_HEIGHT}
+		bind:clientWidth={innerWidth}
+	>
 		<header>
 			<div class="logo">
 				<img
@@ -163,8 +166,7 @@
 
 			<div id="chart-body" class="mt-4">
 				{#if legend && tooltip}
-					<div class="wrapper h-[600px]">
-						<!-- Added fixed height here -->
+					<div class="wrapper">
 						<MapChoropleth
 							mapConfig={$mapConfig}
 							{legend}
@@ -178,7 +180,23 @@
 			</div>
 
 			<div id="source-notes" class="mt-2 text-xs">
-				<!-- source notes content unchanged -->
+				{#if $mapConfig.textSource}
+					<div>
+						<span class="font-bold">Source: </span>
+						<span>{$mapConfig.textSource}</span>
+					</div>
+				{/if}
+				{#if $mapConfig.textNote}
+					<div>
+						<span class="font-bold">Note: </span>
+						<span>{$mapConfig.textNote}</span>
+					</div>
+				{/if}
+				{#if $mapConfig.linkDataAccess}
+					<div class="underline">
+						<a target="_blank" href={$mapConfig.linkDataAccess}>{textDataAccess}</a>
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>
