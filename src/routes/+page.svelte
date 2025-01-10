@@ -8,64 +8,36 @@
 
 	let containerRef;
 	let lastHeight = 0;
-	let isUpdating = false;
 
 	// Get the view parameter from the page store
 	$: isFullscreen = $page.url.searchParams.get('view') === 'fullscreen';
 
 	function calculateHeight() {
-		if (containerRef && !isUpdating) {
-			isUpdating = true;
-
-			const mapContainer = containerRef.querySelector('#euranet-map');
+		if (containerRef) {
 			const sourceNotes = containerRef.querySelector('#source-notes');
+			const sourceHeight = sourceNotes?.offsetHeight || 0;
 
-			const extraPadding = 40;
-			const totalHeight = (mapContainer?.scrollHeight || 0) + extraPadding;
+			// Base height plus source notes height
+			const totalHeight = 624 + sourceHeight;
 
-			// Only update if height has changed significantly (more than 5px)
-			if (Math.abs(totalHeight - lastHeight) > 5 && totalHeight > 0 && totalHeight < 2000) {
+			// Only update if height has changed
+			if (totalHeight !== lastHeight) {
 				console.log('Height measurements:', {
-					mapContainer: mapContainer?.scrollHeight,
-					sourceNotes: sourceNotes?.offsetHeight,
-					totalHeight: totalHeight
+					baseHeight: 624,
+					sourceHeight,
+					totalHeight
 				});
 
 				lastHeight = totalHeight;
 				$APP_HEIGHT_NEW = totalHeight;
 				window.parent.postMessage({ height: totalHeight }, '*');
 			}
-
-			// Reset the updating flag after a delay
-			setTimeout(() => {
-				isUpdating = false;
-			}, 200);
 		}
 	}
 
 	onMount(() => {
-		// Initial calculation with a delay
+		// Single initial calculation after content loads
 		setTimeout(calculateHeight, 500);
-
-		// Use a more restricted resize observer
-		let debounceTimer;
-		const observer = new ResizeObserver(() => {
-			if (debounceTimer) clearTimeout(debounceTimer);
-			debounceTimer = setTimeout(() => {
-				if (!isUpdating) {
-					calculateHeight();
-				}
-			}, 200);
-		});
-
-		if (containerRef) {
-			observer.observe(containerRef);
-		}
-
-		return () => {
-			observer.disconnect();
-			if (debounceTimer) clearTimeout(debounceTimer);
-		};
 	});
 </script>
 
