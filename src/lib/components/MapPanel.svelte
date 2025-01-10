@@ -59,11 +59,11 @@
 	$: isFullscreen = $page.url.searchParams.get('view') === 'fullscreen';
 
 	// Send map height to parent window
-	$: {
-		if ($APP_HEIGHT) {
-			window.parent.postMessage({ height: $APP_HEIGHT }, '*');
-		}
-	}
+	// $: {
+	// 	if ($APP_HEIGHT) {
+	// 		window.parent.postMessage({ height: $APP_HEIGHT }, '*');
+	// 	}
+	// }
 
 	$: dropdownLanguages = languageNameTranslations['en'];
 	$: $isMobile = innerWidth <= $mobileSize;

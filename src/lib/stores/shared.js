@@ -20,3 +20,5 @@ MOUSE.set({
 	y: 0,
 	tooltip: {}
 });
+
+export const APP_HEIGHT_NEW = writable(undefined);
