@@ -154,7 +154,7 @@
 			</div>
 		</header>
 
-		<div id="chart" class="mt-8 h-[calc(100%-theme(spacing.8)-theme(spacing.16))]">
+		<div id="chart" class="mt-8">
 			<div id="chart-header">
 				{#if $mapConfig.headlineAvailable && $mapConfig.title}
 					<h1 class="text-xl font-bold">{$mapConfig.title}</h1>
@@ -179,7 +179,7 @@
 				{/if}
 			</div>
 
-			<div class="mt-2 text-xs">
+			<div id="source-notes" class="mt-2 text-xs">
 				{#if $mapConfig.textSource}
 					<div>
 						<span class="font-bold">Source: </span>

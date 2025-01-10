@@ -7,64 +7,60 @@
 	import { APP_HEIGHT_NEW } from '$lib/stores/shared';
 
 	let containerRef;
-	let contentHeight = 0;
 
 	// Get the view parameter from the page store
 	$: isFullscreen = $page.url.searchParams.get('view') === 'fullscreen';
 
-	function calculateTotalHeight() {
+	function calculateHeight() {
 		if (containerRef) {
-			// Get the maximum of different height measurements
-			const calculatedHeight = Math.max(
-				containerRef.scrollHeight,
-				containerRef.offsetHeight,
-				containerRef.clientHeight
-			);
+			// Get all the elements we need to measure
+			const mapContainer = containerRef.querySelector('#euranet-map');
+			const chartBody = containerRef.querySelector('#chart-body');
+			const sourceNotes = containerRef.querySelector('#chart > div:last-child');
 
-			// Add some buffer to prevent cutting off
-			const heightWithBuffer = calculatedHeight + 50; // 50px buffer
+			// Add extra padding for the source notes
+			const extraPadding = 40; // Adjust this value if needed
+
+			const totalHeight = mapContainer?.scrollHeight || 0;
 
 			console.log('Height measurements:', {
-				scrollHeight: containerRef.scrollHeight,
-				offsetHeight: containerRef.offsetHeight,
-				clientHeight: containerRef.clientHeight,
-				finalHeight: heightWithBuffer
+				mapContainer: mapContainer?.scrollHeight,
+				chartBody: chartBody?.scrollHeight,
+				sourceNotes: sourceNotes?.offsetHeight,
+				totalHeight: totalHeight + extraPadding
 			});
 
-			$APP_HEIGHT_NEW = heightWithBuffer;
-			window.parent.postMessage({ height: heightWithBuffer }, '*');
+			const finalHeight = totalHeight + extraPadding;
+			$APP_HEIGHT_NEW = finalHeight;
+			window.parent.postMessage({ height: finalHeight }, '*');
 		}
 	}
 
 	onMount(() => {
-		// Initial calculation after a brief delay to ensure content is loaded
-		setTimeout(calculateTotalHeight, 100);
+		// Initial delay to ensure content is loaded
+		setTimeout(calculateHeight, 500);
 
-		// Set up ResizeObserver for dynamic content changes
-		const observer = new ResizeObserver(() => {
-			calculateTotalHeight();
+		const observer = new ResizeObserver((entries) => {
+			// Add a small delay to ensure content updates are complete
+			setTimeout(calculateHeight, 100);
 		});
 
 		if (containerRef) {
 			observer.observe(containerRef);
 
-			// Also observe any dynamically loaded content
-			const contentElements = containerRef.querySelectorAll('*');
-			contentElements.forEach((element) => {
-				observer.observe(element);
-			});
+			// Observe map container specifically
+			const mapContainer = containerRef.querySelector('#euranet-map');
+			if (mapContainer) {
+				observer.observe(mapContainer);
+			}
 		}
 
+		// Also trigger recalculation when mapConfig changes
 		return () => observer.disconnect();
 	});
-
-	// Watch for content changes that might affect height
-	$: if (isFullscreen !== undefined) {
-		setTimeout(calculateTotalHeight, 0);
-	}
 </script>
 
-<div bind:this={containerRef} class="flex h-auto min-h-screen w-full">
+<div bind:this={containerRef} class="flex w-full">
 	{#if !isFullscreen}
 		<div class="w-1/2 space-y-4 overflow-y-auto bg-gray-50 p-4">
 			<ControlPanel />
