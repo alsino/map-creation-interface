@@ -7,56 +7,53 @@
 	import { APP_HEIGHT_NEW } from '$lib/stores/shared';
 
 	let containerRef;
+	let lastHeight = 0; // Track last height to prevent infinite updates
 
 	// Get the view parameter from the page store
 	$: isFullscreen = $page.url.searchParams.get('view') === 'fullscreen';
 
 	function calculateHeight() {
 		if (containerRef) {
-			// Get all the elements we need to measure
 			const mapContainer = containerRef.querySelector('#euranet-map');
-			const chartBody = containerRef.querySelector('#chart-body');
-			const sourceNotes = containerRef.querySelector('#chart > div:last-child');
+			const sourceNotes = containerRef.querySelector('#source-notes');
 
-			// Add extra padding for the source notes
-			const extraPadding = 40; // Adjust this value if needed
+			const extraPadding = 40;
+			const totalHeight = (mapContainer?.scrollHeight || 0) + extraPadding;
 
-			const totalHeight = mapContainer?.scrollHeight || 0;
+			// Only update if height has actually changed and is reasonable
+			if (totalHeight !== lastHeight && totalHeight > 0 && totalHeight < 5000) {
+				console.log('Height measurements:', {
+					mapContainer: mapContainer?.scrollHeight,
+					sourceNotes: sourceNotes?.offsetHeight,
+					totalHeight: totalHeight
+				});
 
-			console.log('Height measurements:', {
-				mapContainer: mapContainer?.scrollHeight,
-				chartBody: chartBody?.scrollHeight,
-				sourceNotes: sourceNotes?.offsetHeight,
-				totalHeight: totalHeight + extraPadding
-			});
-
-			const finalHeight = totalHeight + extraPadding;
-			$APP_HEIGHT_NEW = finalHeight;
-			window.parent.postMessage({ height: finalHeight }, '*');
+				lastHeight = totalHeight;
+				$APP_HEIGHT_NEW = totalHeight;
+				window.parent.postMessage({ height: totalHeight }, '*');
+			}
 		}
 	}
 
 	onMount(() => {
-		// Initial delay to ensure content is loaded
+		// Initial calculation
 		setTimeout(calculateHeight, 500);
 
-		const observer = new ResizeObserver((entries) => {
-			// Add a small delay to ensure content updates are complete
-			setTimeout(calculateHeight, 100);
+		// Debounced resize observer to prevent rapid updates
+		let timeoutId;
+		const observer = new ResizeObserver(() => {
+			clearTimeout(timeoutId);
+			timeoutId = setTimeout(calculateHeight, 100);
 		});
 
 		if (containerRef) {
 			observer.observe(containerRef);
-
-			// Observe map container specifically
-			const mapContainer = containerRef.querySelector('#euranet-map');
-			if (mapContainer) {
-				observer.observe(mapContainer);
-			}
 		}
 
-		// Also trigger recalculation when mapConfig changes
-		return () => observer.disconnect();
+		return () => {
+			observer.disconnect();
+			clearTimeout(timeoutId);
+		};
 	});
 </script>
 
