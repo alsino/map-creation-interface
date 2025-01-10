@@ -14,17 +14,12 @@
 
 	function calculateHeight() {
 		if (containerRef) {
-			const sourceNotes = containerRef.querySelector('#source-notes');
-			const sourceHeight = sourceNotes?.offsetHeight || 0;
-
-			// Base height plus source notes height
-			const totalHeight = 624 + sourceHeight;
+			// Get actual height of the entire container content
+			const totalHeight = containerRef.scrollHeight;
 
 			// Only update if height has changed
-			if (totalHeight !== lastHeight) {
-				console.log('Height measurements:', {
-					baseHeight: 624,
-					sourceHeight,
+			if (totalHeight !== lastHeight && totalHeight > 0) {
+				console.log('Height measurement:', {
 					totalHeight
 				});
 
@@ -36,8 +31,15 @@
 	}
 
 	onMount(() => {
-		// Single initial calculation after content loads
+		// Initial calculation after content loads
 		setTimeout(calculateHeight, 500);
+
+		// Also calculate height when images and other resources finish loading
+		window.addEventListener('load', calculateHeight);
+
+		return () => {
+			window.removeEventListener('load', calculateHeight);
+		};
 	});
 </script>
 
