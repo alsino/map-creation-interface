@@ -1,17 +1,11 @@
 {
-  "heading": "Czy wyższy poziom wykształcenia jest gwarancją pracy?",
-  "subheading": "W 2023 roku wskaźnik zatrudnienia osób z wykształceniem wyższym osiągnął 86,3%.",
-  "legend1": "Brak dostępnych danych",
-  "tooltip1": "",
-  "textSourceDescription": "Źródło",
-  "textSource": "Eurostat",
+  "title": "Które kraje UE oferują najlepsze perspektywy zatrudnienia?",
+  "subtitle": "Szacuje się, że przyszły wzrost zatrudnienia w tych krajach w latach 2022–2035 wyniesie 5,6%.",
   "textNoteDescription": "Notatka",
-  "textNote": "Wskaźnik zatrudnienia oblicza się dla osób w wieku od 20 do 64 lat z wysokim poziomem wykształcenia. Wykształcenie wyższe odpowiada poziomom ISCED 5-8. Dla niskiego poziomu wykształcenia (poziomy ISCED 0-2) wskaźnik wynosi 58,3%; dla średniego poziomu (poziomy ISCED 3-4) wynosi 74,6%.",
-  "textDataAccess": "Uzyskaj dostęp do danych",
-  "linkDataAccess": "https://ec.europa.eu/eurostat/databrowser/view/lfsi_educ_a__custom_14246763/default/table?lang=en",
-  "textCountryClick": "Kliknij, aby uzyskać więcej informacji",
-  "extraInfoText_DE": "Droga 99 prowadzi z północno-izraelskiego miasta Kiryat Shmona przez Majdal Shams, miasto zamieszkałe przez syryjskich Druzów, tuż nad górą Hermon, do okupowanych przez Izrael Wzgórz Golan: Jeszcze kilka tygodni temu ta trasa była obszarem zastrzeżonym przez wojsko. Biegnie wzdłuż granicy z Libanem aż do granicy z Syrią. Stąd terrorystyczna milicja Hezbollah wystrzeliła większość swoich rakiet i dronów. ",
-  "extraInfoLink_DE": "Przeczytaj więcej",
-  "extraInfoText_SE": "Szwecja - Dla klienta bardzo ważne jest zwracanie uwagi na jego potrzeby. Szczęście Eneana wymaga bólu. Masa jaśminowa. Góry wraz ze swoimi towarzyszami zrodzią pióra i wielkie pchnięcia, a narodzi się śmieszna mysz. Do tego czasu ile kotów, ultricies i nie, piłka nożna dla dzieci, cena kto, sem. Nie ma efektu masy dla nikogo. Aż do stopy po prostu, fringilla lub, aliquet, ani, vulputate potrzebuje, arcu.",
-  "extraInfoLink_SE": ""
+  "textNote": "Bardzo kreatywna notatka",
+  "textSourceDescription": "Źródło",
+  "textSource": "OECD",
+  "linkDataAccessDescription": "Uzyskaj dostęp do danych",
+  "extraInfo_DE": "Niemcy przyspieszają wdrażanie energii odnawialnej, dążąc do 80% czystej energii do 2030 r.",
+  "extraInfo_FR": "Parlament francuski zatwierdza projekt ustawy o dużej reformie imigracyjnej w obliczu ogólnokrajowych protestów"
 }

@@ -48,13 +48,13 @@ Belgium,BE,0.083,FALSE,,,,,,,,,
 Bulgaria,BG,-0.108,FALSE,,,,,,,,,
 Cyprus,CY,0.157,FALSE,,,,,,,,,
 Czechia,CZ,-0.002,FALSE,,,,,,,,,
-Germany,DE,-0.040,FALSE,,,,,,,,,
+Germany,DE,-0.040,true,"Germany Accelerates Renewable Energy Rollout, Targets 80% Clean Power by 2030",Read more,,,,,,,
 Denmark,DK,0.036,FALSE,,,,,,,,,
 Estonia,EE,0.047,FALSE,,,,,,,,,
 Greece,EL,0.006,FALSE,,,,,,,,,
 Spain,ES,0.132,FALSE,,,,,,,,,
 Finland,FI,0.069,FALSE,,,,,,,,,
-France,FR,0.045,FALSE,,,,,,,,,
+France,FR,0.045,true,"French Parliament Approves Major Immigration Reform Bill Amid Nationwide Protests",,,,,,,,
 Croatia,HR,0.000,FALSE,,,,,,,,,
 Hungary,HU,-0.019,FALSE,,,,,,,,,
 Ireland,IE,0.243,FALSE,,,,,,,,,
@@ -125,10 +125,13 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 	let overrideScaleValues = $mapConfig.overrideScaleValues;
 	let legendAvailable = $mapConfig.legendAvailable;
 	let textSourceAvailable = $mapConfig.textSourceAvailable;
+	let textSourceDescription = $mapConfig.textSourceDescription;
 	let textSource = $mapConfig.textSource;
 	let textNoteAvailable = $mapConfig.textNoteAvailable;
+	let textNoteDescription = $mapConfig.textNoteDescription;
 	let textNote = $mapConfig.textNote;
 	let textDataAccessAvailable = $mapConfig.textDataAccessAvailable;
+	let linkDataAccessDescription = $mapConfig.linkDataAccessDescription;
 	let linkDataAccess = $mapConfig.linkDataAccess;
 	let legend1Color = $mapConfig.legend1Color;
 	let legend2Color = $mapConfig.legend2Color;
@@ -160,10 +163,13 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 		overrideScaleValues: overrideScaleValues,
 		legendAvailable: legendAvailable,
 		textSourceAvailable: textSourceAvailable,
+		textSourceDescription: textSourceDescription,
 		textSource: textSource,
 		textNoteAvailable: textNoteAvailable,
+		textNoteDescription: textNoteDescription,
 		textNote: textNote,
 		textDataAccessAvailable: textDataAccessAvailable,
+		linkDataAccessDescription: linkDataAccessDescription,
 		linkDataAccess: linkDataAccess,
 		legend1Color: legend1Color,
 		legend2Color: legend2Color,
@@ -172,7 +178,23 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 		colorBarFirstValue: colorBarFirstValue,
 		colorBarLastValue: colorBarLastValue,
 		customUnitLabelAvailable: customUnitLabelAvailable,
-		customUnitLabel: customUnitLabel
+		customUnitLabel: customUnitLabel,
+		translate: {
+			title,
+			subtitle,
+			textNoteDescription,
+			textNote,
+			textSourceDescription,
+			textSource,
+			linkDataAccessDescription,
+			// Add country text_content with underscore in key
+			...$mapConfig.parsedData?.reduce((acc, country) => {
+				if (country.text_content) {
+					acc[`extraInfo_${country.id}`] = country.text_content;
+				}
+				return acc;
+			}, {})
+		}
 	});
 
 	$: data && handleCSVChange(data);
@@ -275,7 +297,23 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 				...m,
 				parsedData: validatedData,
 				clusters: [], // Reset clusters
-				colorScale: null // Reset color scale
+				colorScale: null, // Reset color scale
+				translate: {
+					title,
+					subtitle,
+					textNoteDescription,
+					textNote,
+					textSourceDescription,
+					textSource,
+					linkDataAccessDescription,
+					// Add country text_content entries
+					...validatedData.reduce((acc, country) => {
+						if (country.text_content) {
+							acc[`extraInfo_${country.id}`] = country.text_content;
+						}
+						return acc;
+					}, {})
+				}
 			}));
 		} catch (error) {
 			csvError = `Error parsing CSV: ${error.message}`;
@@ -289,6 +327,57 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 			...m,
 			colourSchemeReverse: value
 		}));
+	}
+
+	let translationLoading = false;
+	let translationError = null;
+	let translatedLanguages = [];
+	let totalLanguages = 24; // Total number of languages
+
+	async function triggerTranslations() {
+		translationLoading = true;
+		translationError = null;
+		translatedLanguages = [];
+
+		try {
+			const response = await fetch('/api/translate', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify($mapConfig.translate)
+			});
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data.error || 'Translation failed');
+			}
+
+			translatedLanguages = data.completedLanguages || [];
+
+			if (data.warning) {
+				translationError = {
+					type: 'warning',
+					message: data.message,
+					details: data.details
+				};
+			} else {
+				translationError = {
+					type: 'success',
+					message: 'All translations completed successfully!'
+				};
+			}
+		} catch (error) {
+			console.error('Error triggering translations:', error);
+			translationError = {
+				type: 'error',
+				message: error.message,
+				details: error.details
+			};
+		} finally {
+			translationLoading = false;
+		}
 	}
 </script>
 
@@ -567,5 +656,90 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 				</div>
 			</div>
 		{/if}
+	</div>
+	<!-- New Translation section -->
+	<div class="space-y-4 border-t pt-4">
+		<h3 class="font-bold">Translations</h3>
+		<div class="space-y-2">
+			<button
+				on:click={triggerTranslations}
+				class="w-full rounded px-4 py-2 text-white transition-colors {translationLoading
+					? 'cursor-not-allowed bg-gray-400'
+					: 'bg-blue-600 hover:bg-blue-700'}"
+				type="button"
+				disabled={translationLoading}
+			>
+				{#if translationLoading}
+					<span class="inline-flex items-center">
+						<svg class="-ml-1 mr-3 h-5 w-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							/>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+							/>
+						</svg>
+						Generating translations...
+					</span>
+				{:else}
+					Generate Language Files
+				{/if}
+			</button>
+
+			{#if translationLoading || translatedLanguages.length > 0}
+				<div class="mt-4 space-y-2">
+					<div class="flex justify-between text-sm text-gray-600">
+						<span>Translation Progress</span>
+						<span>{translatedLanguages.length} / {totalLanguages}</span>
+					</div>
+					<div class="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+						<div
+							class="h-full bg-blue-600 transition-all duration-500"
+							style="width: {(translatedLanguages.length / totalLanguages) * 100}%"
+						></div>
+					</div>
+					<div class="max-h-40 space-y-1 overflow-y-auto text-sm">
+						{#each translatedLanguages as lang}
+							<div class="flex items-center text-green-600">
+								<svg class="mr-2 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+									<path
+										fill-rule="evenodd"
+										d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+										clip-rule="evenodd"
+									/>
+								</svg>
+								{lang}
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+
+			{#if translationError}
+				<div
+					class="mt-2 rounded p-3 {translationError.type === 'success'
+						? 'bg-green-100 text-green-700'
+						: translationError.type === 'warning'
+							? 'bg-yellow-100 text-yellow-700'
+							: 'bg-red-100 text-red-700'}"
+				>
+					<p class="font-medium">{translationError.message}</p>
+					{#if translationError.details}
+						<div class="mt-2 max-h-32 overflow-y-auto text-sm">
+							{#each translationError.details as detail}
+								<p>• {detail}</p>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{/if}
+		</div>
 	</div>
 </div>

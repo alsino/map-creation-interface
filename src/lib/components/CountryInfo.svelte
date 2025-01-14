@@ -12,7 +12,8 @@
 	export let countryName;
 	export let countryText;
 	export let countryLink;
-	export let tooltip;
+	// export let tooltip;
+	export let tooltip = [{ label: '' }];
 
 	let width, height;
 	let countryValue;
@@ -31,7 +32,8 @@
 	}
 
 	$: countryUnit = config.datasetUnit == 'percent' ? '%' : '';
-	$: countryLabel = tooltip[0].label;
+	// $: countryLabel = tooltip[0].label;
+	$: countryLabel = tooltip && tooltip[0] ? tooltip[0].label : '';
 </script>
 
 {#if $countryInfoVisible}

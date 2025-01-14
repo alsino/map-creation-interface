@@ -1,17 +1,11 @@
 {
-  "heading": "Onko parempi koulutustaso työpaikan tae?",
-  "subheading": "Vuonna 2023 korkeakoulututkinnon suorittaneen väestön työllisyysaste oli 86,3 %.",
-  "legend1": "Tietoja ei ole saatavilla",
-  "tooltip1": "",
-  "textSourceDescription": "Lähde",
-  "textSource": "Eurostat",
+  "title": "Mitkä EU-maat tarjoavat parhaat työllisyysnäkymät?",
+  "subtitle": "Näissä maissa tulevaisuudessa työllisyyden kasvun arvioidaan olevan 5,6 % vuosina 2022-2035.",
   "textNoteDescription": "Huom",
-  "textNote": "Työllisyysaste lasketaan 20–64-vuotiaille korkeasti koulutetuille. Korkea-asteen koulutus vastaa ISCED-tasoja 5-8. Matala koulutustaso (ISCED-tasot 0–2) on 58,3 %; keskitasolla (ISCED-tasot 3–4) se on 74,6 %.",
-  "textDataAccess": "Käytä tietoja",
-  "linkDataAccess": "https://ec.europa.eu/eurostat/databrowser/view/lfsi_educ_a__custom_14246763/default/table?lang=fi",
-  "textCountryClick": "Napsauta saadaksesi lisätietoja",
-  "extraInfoText_DE": "Tie 99 johtaa pohjois-israelilaisesta Kiryat Shmonan kaupungista Majdal Shamsin kautta, Syyrian druusien asuttaman kaupungin kautta aivan Hermon-vuorella Israelin miehittämille Golanin kukkuloille: Vielä muutama viikko sitten tämä reitti oli rajoitettu sotilasalue. Se kulkee Libanonin rajaa pitkin Syyrian rajalle asti. Terroristimiliisi Hizbollah ampui suurimman osan raketteistaan ja droneistaan täältä. ",
-  "extraInfoLink_DE": "Lue lisää",
-  "extraInfoText_SE": "Ruotsi - Asiakkaan on erittäin tärkeää kiinnittää huomiota asiakkaan tarpeisiin. Aeneanin onni tarvitsee kipua. Jasmiinimassa. Yhdessä tovereidensa kanssa vuoret synnyttävät höyheniä ja suuria työntöjä, ja naurettava hiiri syntyy. Siihen asti, kuinka monta kissaa, ultricies ja ei, lapset jalkapallo, hinta kuka, sem. Mitään massavaikutusta ei ole kenellekään. Kunnes jalka vain, fringilla tai, aliquet nor, vulputate tarvitsee, kaari.",
-  "extraInfoLink_SE": ""
+  "textNote": "Erittäin luova huomio",
+  "textSourceDescription": "Lähde",
+  "textSource": "OECD",
+  "linkDataAccessDescription": "Käytä tietoja",
+  "extraInfo_DE": "Saksa nopeuttaa uusiutuvan energian käyttöönottoa ja tavoittelee 80 % puhdasta sähköä vuoteen 2030 mennessä",
+  "extraInfo_FR": "Ranskan parlamentti hyväksyi suuren maahanmuuttouudistuksen valtakunnallisten mielenosoitusten keskellä"
 }

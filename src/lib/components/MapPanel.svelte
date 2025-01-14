@@ -22,6 +22,7 @@
 	let textSource;
 	let textDataAccess;
 	let linkDataAccess;
+	let linkDataAccessDescription;
 	let textNoteDescription;
 	let textNote;
 	let textCountryClick;
@@ -31,6 +32,8 @@
 	let containerHeight;
 
 	let transformedGeoData;
+
+	$: console.log($mapConfig);
 
 	async function fetchAndTransformGeoData() {
 		const res = await fetch('/data/geodata/europe-20m.json');
@@ -74,50 +77,88 @@
 	});
 
 	async function getLanguage(lang) {
-		const res = await fetch(`/languages/${lang}.json`)
-			.then((response) => response.json())
-			.then(function (data) {
-				heading = data.heading;
-				subheading = data.subheading;
-				textSourceDescription = data.textSourceDescription;
-				textSource = data.textSource;
-				textDataAccess = data.textDataAccess;
-				linkDataAccess = data.linkDataAccess;
-				textNoteDescription = data.textNoteDescription;
-				textNote = data.textNote;
-				textCountryClick = data.textCountryClick;
+		try {
+			console.log('Fetching language:', lang);
+			const response = await fetch(`/languages/${lang}.json`);
+			if (!response.ok) {
+				throw new Error(`Failed to load language file: ${response.statusText}`);
+			}
 
-				// LEGEND
-				legendEntries = Object.keys(data).filter((item) => item.includes('legend'));
-				legend = legendEntries.map((item) => ({
-					[item]: data[item],
-					label: data[item],
-					color: $mapConfig[`${item}Color`]
-				}));
+			const data = await response.json();
+			console.log('Language data loaded:', data);
 
-				// TOOLTIP
-				tooltipEntries = Object.keys(data).filter((item) => item.includes('tooltip'));
-				tooltip = tooltipEntries.map((item) => ({
-					[item]: data[item],
-					label: data[item],
-					textCountryClick: textCountryClick
-				}));
+			heading = data.title;
+			subheading = data.subtitle;
+			textSourceDescription = data.textSourceDescription;
+			textSource = data.textSource;
+			textNoteDescription = data.textNoteDescription;
+			textNote = data.textNote;
+			linkDataAccessDescription = data.linkDataAccessDescription;
 
-				// Extra Info
-				extraInfoTexts = filterAndReduceExtraInfo('extraInfoText');
-				extraInfoLinks = filterAndReduceExtraInfo('extraInfoLink');
-			});
+			// // Update mapConfig with translated values
+			// mapConfig.set({
+			// 	...$mapConfig, // Spread the current values
+			// 	title: data.title,
+			// 	subtitle: data.subtitle,
+			// 	textSourceDescription: data.textSourceDescription,
+			// 	textSource: data.textSource,
+			// 	textNoteDescription: data.textNoteDescription,
+			// 	textNote: data.textNote,
+			// 	linkDataAccessDescription: data.linkDataAccessDescription,
+			// 	// Preserve other mapConfig values but update translate object
+			// 	translate: {
+			// 		title: data.title,
+			// 		subtitle: data.subtitle,
+			// 		textNoteDescription: data.textNoteDescription,
+			// 		textNote: data.textNote,
+			// 		textSourceDescription: data.textSourceDescription,
+			// 		textSource: data.textSource,
+			// 		linkDataAccessDescription: data.linkDataAccessDescription,
+			// 		// Keep existing extraInfo entries
+			// 		...Object.fromEntries(
+			// 			Object.entries(data)
+			// 				.filter(([key]) => key.startsWith('extraInfo_'))
+			// 				.map(([key, value]) => [key, value])
+			// 		)
+			// 	}
+			// });
+
+			console.log('Updated mapConfig:', $mapConfig);
+
+			// LEGEND
+			legendEntries = Object.keys(data).filter((item) => item.includes('legend'));
+			legend = legendEntries.map((item) => ({
+				[item]: data[item],
+				label: data[item],
+				color: $mapConfig[`${item}Color`]
+			}));
+
+			// TOOLTIP
+			tooltipEntries = Object.keys(data).filter((item) => item.includes('tooltip'));
+			tooltip = tooltipEntries.map((item) => ({
+				[item]: data[item],
+				label: data[item],
+				textCountryClick: data.textCountryClick
+			}));
+
+			// Extra Info
+			extraInfoTexts = filterAndReduceExtraInfo(data, 'extraInfoText');
+			extraInfoLinks = filterAndReduceExtraInfo(data, 'extraInfoLink');
+		} catch (error) {
+			console.error('Error loading language file:', error);
+		}
 	}
 
-	function filterAndReduceExtraInfo(filterTerm) {
+	// Fixed filterAndReduceExtraInfo function
+	function filterAndReduceExtraInfo(data, filterTerm) {
 		const asArray = Object.entries(data);
-		const extraInfoEntries = asArray.filter(([key, value]) => key.includes(filterTerm));
+		const extraInfoEntries = asArray.filter(([key]) => key.includes(filterTerm));
 
 		return extraInfoEntries.reduce(
-			(obj, item) =>
-				Object.assign(obj, {
-					[item[0].split('_')[1]]: item[1]
-				}),
+			(obj, item) => ({
+				...obj,
+				[item[0].split('_')[1]]: item[1]
+			}),
 			{}
 		);
 	}
@@ -156,11 +197,11 @@
 
 		<div id="chart" class="mt-8">
 			<div id="chart-header">
-				{#if $mapConfig.headlineAvailable && $mapConfig.title}
-					<h1 class="text-xl font-bold">{$mapConfig.title}</h1>
+				{#if heading}
+					<h1 class="text-xl font-bold">{heading}</h1>
 				{/if}
-				{#if $mapConfig.subheadlineAvailable && $mapConfig.subtitle}
-					<h3 class="text-md">{$mapConfig.subtitle}</h3>
+				{#if subheading}
+					<h3 class="text-md">{subheading}</h3>
 				{/if}
 			</div>
 
@@ -180,21 +221,21 @@
 			</div>
 
 			<div id="source-notes" class="mt-2 text-xs">
-				{#if $mapConfig.textSource}
+				{#if textSource}
 					<div>
-						<span class="font-bold">Source: </span>
-						<span>{$mapConfig.textSource}</span>
+						<span class="font-bold">{textSourceDescription}: </span>
+						<span>{textSource}</span>
 					</div>
 				{/if}
-				{#if $mapConfig.textNote}
+				{#if textNote}
 					<div>
-						<span class="font-bold">Note: </span>
-						<span>{$mapConfig.textNote}</span>
+						<span class="font-bold">{textNoteDescription}: </span>
+						<span>{textNote}</span>
 					</div>
 				{/if}
 				{#if $mapConfig.linkDataAccess}
 					<div class="underline">
-						<a target="_blank" href={$mapConfig.linkDataAccess}>{textDataAccess}</a>
+						<a target="_blank" href={$mapConfig.linkDataAccess}>{linkDataAccessDescription}</a>
 					</div>
 				{/if}
 			</div>

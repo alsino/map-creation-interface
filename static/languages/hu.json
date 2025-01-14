@@ -1,17 +1,11 @@
 {
-  "heading": "A jobb iskolai végzettség garancia a munkahelyre?",
-  "subheading": "2023-ban a felsőfokú végzettséggel rendelkező lakosság foglalkoztatási rátája elérte a 86,3%-ot.",
-  "legend1": "Nincs adat",
-  "tooltip1": "",
-  "textSourceDescription": "Forrás",
-  "textSource": "Eurostat",
+  "title": "Mely uniós országok kínálják a legjobb foglalkoztatási kilátásokat?",
+  "subtitle": "A foglalkoztatás jövőbeni növekedése ezekben az országokban 2022 és 2035 között 5,6%.",
   "textNoteDescription": "Jegyzet",
-  "textNote": "A foglalkoztatási rátát a 20 és 64 év közötti, magas iskolai végzettségűekre számítják ki. A felsőoktatás az ISCED 5-8. szintjének felel meg. Alacsony iskolai végzettség esetén (ISCED 0-2 szint) az arány 58,3%. közepes szinten (ISCED 3-4 szint) 74,6%.",
-  "textDataAccess": "Hozzáférés az adatokhoz",
-  "linkDataAccess": "https://ec.europa.eu/eurostat/databrowser/view/lfsi_educ_a__custom_14246763/default/table?lang=en",
-  "textCountryClick": "További információért kattintson",
-  "extraInfoText_DE": "A 99-es út az észak-izraeli Kiryat Shmona városból Majdal Shams-en, a szíriai drúzok által lakott városon keresztül vezet közvetlenül a Hermon-hegyen az izraeliek által megszállt Golán-fennsíkhoz: Néhány héttel ezelőttig ez az útvonal korlátozott katonai terület volt. A libanoni határon és a szíriai határon halad. A Hezbollah terrorista milícia innen lőtte ki rakétáinak és drónjainak nagy részét. ",
-  "extraInfoLink_DE": "Olvass tovább",
-  "extraInfoText_SE": "Svédország – Nagyon fontos, hogy az ügyfél figyeljen az ügyfél igényeire. Aenean szerencséjének fájdalomra van szüksége. Jázmin massza. Társaikkal együtt a hegyek tollakat és nagy lökéseket szülnek, és nevetséges egér születik. Addig hány macska, ultrici és nem, a gyerekek foci, az ár ki, sem. Senkire nincs tömeghatás. Amíg a láb csak, fringilla vagy, aliquet nor, vulputate kell, arcu.",
-  "extraInfoLink_SE": ""
+  "textNote": "Nagyon kreatív megjegyzés",
+  "textSourceDescription": "Forrás",
+  "textSource": "OECD",
+  "linkDataAccessDescription": "Hozzáférés az adatokhoz",
+  "extraInfo_DE": "Németország felgyorsítja a megújuló energia elterjedését, és 2030-ra a 80%-os tiszta energia elérését tűzi ki célul",
+  "extraInfo_FR": "A francia parlament országos tiltakozások közepette jóváhagyta a jelentős bevándorlási reformról szóló törvényjavaslatot"
 }

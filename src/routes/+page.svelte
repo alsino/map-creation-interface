@@ -19,9 +19,9 @@
 
 			// Only update if height has changed
 			if (totalHeight !== lastHeight && totalHeight > 0) {
-				console.log('Height measurement:', {
-					totalHeight
-				});
+				// console.log('Height measurement:', {
+				// 	totalHeight
+				// });
 
 				lastHeight = totalHeight;
 				$APP_HEIGHT_NEW = totalHeight;

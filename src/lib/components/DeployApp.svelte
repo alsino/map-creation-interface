@@ -8,6 +8,7 @@
 	let isLoading = false;
 	let repoUrl = null;
 	let deploymentUrl = null;
+	let embedUrl = null;
 
 	// Function to convert string to slug
 	function toSlug(str) {
@@ -20,9 +21,9 @@
 	}
 
 	// Updated embed code function with slug
-	function getEmbedCode(mapId, url) {
+	function getEmbedCode(mapId, deployUrl, embedUrl) {
 		const slugifiedId = toSlug(mapId);
-		return `<iframe title="New Map" aria-label="Map" id="${slugifiedId}" src="${url}" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="624"></iframe><script type="text/javascript">window.addEventListener("message",e=>{if("${url}"!==e.origin)return;let t=e.data;if(t.height){document.getElementById("${slugifiedId}").height=t.height+"px"}},!1)<\/script>`;
+		return `<iframe title="New Map" aria-label="Map" id="${slugifiedId}" src="${deployUrl}" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="624"></iframe><script type="text/javascript">window.addEventListener("message",e=>{if("${embedUrl}"!==e.origin)return;let t=e.data;if(t.height){document.getElementById("${slugifiedId}").height=t.height+"px"}},!1)<\/script>`;
 	}
 
 	let steps = [
@@ -87,6 +88,7 @@
 			if (!deployResponse.ok) throw new Error(deployData.error || 'Failed to deploy to Vercel');
 
 			deploymentUrl = `${deployData.projectUrl}?view=fullscreen`;
+			embedUrl = `${deployData.projectUrl}`;
 
 			// All steps completed
 			steps = steps.map((step) => ({
@@ -180,12 +182,13 @@
 						<div class="relative">
 							<pre class="overflow-x-auto rounded bg-gray-100 p-3 text-sm">{getEmbedCode(
 									repoName,
-									deploymentUrl
+									deploymentUrl,
+									embedUrl
 								)}</pre>
 							<button
 								class="absolute right-2 top-2 rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600"
 								on:click={() => {
-									navigator.clipboard.writeText(getEmbedCode(repoName, deploymentUrl));
+									navigator.clipboard.writeText(getEmbedCode(repoName, deploymentUrl, embedUrl));
 								}}
 							>
 								Copy

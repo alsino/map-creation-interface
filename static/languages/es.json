@@ -1,17 +1,11 @@
 {
-  "heading": "¿Un mejor nivel de educación es una garantía de empleo?",
-  "subheading": "En 2023, la tasa de empleo de la población con título de educación superior alcanzó el 86,3%.",
-  "legend1": "No hay datos disponibles",
-  "tooltip1": "",
-  "textSourceDescription": "Fuente",
-  "textSource": "Eurostat",
+  "title": "¿Qué países de la UE ofrecen las mejores perspectivas de empleo?",
+  "subtitle": "Se estima que el crecimiento futuro del empleo en estos países en el período 2022-2035 será del 5,6%.",
   "textNoteDescription": "Nota",
-  "textNote": "La tasa de empleo se calcula para personas de entre 20 y 64 años con un nivel de educación alto. La educación superior corresponde a los niveles CINE 5-8. Para un nivel de educación bajo (niveles CINE 0-2), la tasa es del 58,3%; para un nivel medio (niveles CINE 3-4) es del 74,6%.",
-  "textDataAccess": "Acceder a los datos",
-  "linkDataAccess": "https://ec.europa.eu/eurostat/databrowser/view/lfsi_educ_a__custom_14246763/default/table?lang=en",
-  "textCountryClick": "Haga clic para más información",
-  "extraInfoText_DE": "La carretera 99 va desde la ciudad de Kiryat Shmona, en el norte de Israel, a través de Majdal Shams, una ciudad habitada por drusos sirios directamente en el monte Hermón, hasta los Altos del Golán ocupados por Israel: hasta hace unas semanas, esta ruta era una zona militar restringida. Corre a lo largo de la frontera con el Líbano y hasta la frontera con Siria. La milicia terrorista Hezbollah disparó la mayoría de sus cohetes y drones desde aquí. ",
-  "extraInfoLink_DE": "Leer más",
-  "extraInfoText_SE": "Suecia: es muy importante que el cliente preste atención a sus necesidades. La buena suerte de Enean necesita dolor. Masa de jazmín. Junto a sus compañeros, las montañas darán a luz plumas y grandes estocadas, y nacerá un ridículo ratón. Hasta entonces, cuantos gatos, ultricies y no, el fútbol de niños, el precio quién, sem. No hay efecto de masa para nadie. Hasta que el pie justo, fringilla o, aliquet ni, vulpute necesidades, arcu.",
-  "extraInfoLink_SE": ""
+  "textNote": "Una nota muy creativa",
+  "textSourceDescription": "Fuente",
+  "textSource": "OCDE",
+  "linkDataAccessDescription": "Acceder a los datos",
+  "extraInfo_DE": "Alemania acelera el despliegue de energía renovable y aspira a que el 80 % de su energía sea limpia en 2030",
+  "extraInfo_FR": "El Parlamento francés aprueba un importante proyecto de ley de reforma migratoria en medio de protestas a nivel nacional"
 }
