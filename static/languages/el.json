@@ -1,19 +1,9 @@
 {
-  "title": "Ποιες χώρες της ΕΕ είναι οι πιο καυτές;",
-  "subtitle": "Αύξηση θερμοκρασιών σε σχέση με το προηγούμενο έτος",
+  "title": "Ποιες χώρες της ΕΕ προσφέρουν τις καλύτερες προοπτικές απασχόλησης;",
+  "subtitle": "Η μελλοντική αύξηση της απασχόλησης σε αυτές τις χώρες το 2022-2035 εκτιμάται σε 5,6%.",
   "textNoteDescription": "Σημείωμα",
-  "textNote": "αυτό είναι μια δοκιμασία",
   "textSourceDescription": "Πηγή",
-  "textSource": "eurostat",
   "linkDataAccessDescription": "Πρόσβαση στα δεδομένα",
   "legend1": "Δεν υπάρχουν διαθέσιμα δεδομένα",
-  "datasetType": "αξίες",
-  "datasetUnit": "τοις εκατό",
-  "colourSchemeType": "ακολουθητικός",
-  "colourScheme": "κίτρινο-πορτοκαλί-κόκκινο",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "αύξηση σε βαθμούς Κελσίου"
+  "customUnitLabel": "ατόμων κάτω των 23 ετών"
 }

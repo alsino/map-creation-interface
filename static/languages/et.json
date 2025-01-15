@@ -1,19 +1,9 @@
 {
-  "title": "Millised ELi riigid on kõige kuumemad?",
-  "subtitle": "Temperatuuri tõus eelmise aastaga võrreldes",
+  "title": "Millised ELi riigid pakuvad parimaid töövõimalusi?",
+  "subtitle": "Nendes riikides on edaspidine tööhõive kasv aastatel 2022–2035 hinnanguliselt 5,6%.",
   "textNoteDescription": "Märkus",
-  "textNote": "see on testmärkus",
   "textSourceDescription": "Allikas",
-  "textSource": "eurostat",
   "linkDataAccessDescription": "Juurdepääs andmetele",
   "legend1": "Andmed puuduvad",
-  "datasetType": "väärtusi",
-  "datasetUnit": "protsenti",
-  "colourSchemeType": "järjestikused",
-  "colourScheme": "kollane-oranž-punane",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "tõus Celsiuse kraadides"
+  "customUnitLabel": "alla 23-aastastest"
 }

@@ -1,19 +1,9 @@
 {
-  "title": "Welke EU-landen zijn het populairst?",
-  "subtitle": "Temperatuurstijging ten opzichte van vorig jaar",
+  "title": "Welke EU-landen bieden de beste werkgelegenheidsvooruitzichten?",
+  "subtitle": "De toekomstige werkgelegenheidsgroei in deze landen in de periode 2022-2035 wordt geschat op 5,6%.",
   "textNoteDescription": "Opmerking",
-  "textNote": "dit is een test ote",
   "textSourceDescription": "Bron",
-  "textSource": "eurostat",
   "linkDataAccessDescription": "Toegang tot de gegevens",
   "legend1": "Geen gegevens beschikbaar",
-  "datasetType": "waarden",
-  "datasetUnit": "procent",
-  "colourSchemeType": "sequentieel",
-  "colourScheme": "geel-oranje-rood",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "winst in graden Celsius"
+  "customUnitLabel": "van mensen onder de 23"
 }

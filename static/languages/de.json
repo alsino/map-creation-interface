@@ -1,19 +1,9 @@
 {
-  "title": "Welche EU-Länder sind am heißesten?",
-  "subtitle": "Temperaturanstieg zum Vorjahr",
+  "title": "Welche EU-Länder bieten die besten Beschäftigungsaussichten?",
+  "subtitle": "Das künftige Beschäftigungswachstum in diesen Ländern im Zeitraum 2022–2035 wird auf 5,6 % geschätzt.",
   "textNoteDescription": "Notiz",
-  "textNote": "Dies ist ein Testnote",
   "textSourceDescription": "Quelle",
-  "textSource": "eurostat",
   "linkDataAccessDescription": "Zugriff auf die Daten",
   "legend1": "Keine Daten verfügbar",
-  "datasetType": "Werte",
-  "datasetUnit": "Prozent",
-  "colourSchemeType": "sequentiell",
-  "colourScheme": "gelb-orange-rot",
-  "linkDataAccess": "Abonnieren",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "Zunahme in Grad Celsius"
+  "customUnitLabel": "von Menschen unter 23"
 }

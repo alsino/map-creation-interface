@@ -1,19 +1,9 @@
 {
-  "title": "Vilka EU-länder är hetast?",
-  "subtitle": "Ökning i temperaturer jämfört med föregående år",
+  "title": "Vilka EU-länder har de bästa sysselsättningsmöjligheterna?",
+  "subtitle": "Framtida sysselsättningstillväxt i dessa länder 2022-2035 beräknas till 5,6 %.",
   "textNoteDescription": "Notera",
-  "textNote": "detta är en testanteckning",
   "textSourceDescription": "Källa",
-  "textSource": "eurostat",
   "linkDataAccessDescription": "Få åtkomst till data",
   "legend1": "Inga data tillgängliga",
-  "datasetType": "värden",
-  "datasetUnit": "procent",
-  "colourSchemeType": "sekventiell",
-  "colourScheme": "gul-orange-röd",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "ökning i grader Celsius"
+  "customUnitLabel": "av personer under 23 år"
 }

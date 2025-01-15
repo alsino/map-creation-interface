@@ -1,19 +1,9 @@
 {
-  "title": "Kurios ES šalys karščiausios?",
-  "subtitle": "Temperatūros padidėjimas, palyginti su ankstesniais metais",
+  "title": "Kurios ES šalys siūlo geriausias įsidarbinimo perspektyvas?",
+  "subtitle": "Skaičiuojama, kad būsimas užimtumo augimas šiose šalyse 2022–2035 m. sieks 5,6 proc.",
   "textNoteDescription": "Pastaba",
-  "textNote": "tai yra bandomoji pastaba",
   "textSourceDescription": "Šaltinis",
-  "textSource": "eurostatas",
   "linkDataAccessDescription": "Pasiekite duomenis",
   "legend1": "Nėra duomenų",
-  "datasetType": "vertybes",
-  "datasetUnit": "proc",
-  "colourSchemeType": "nuosekliai",
-  "colourScheme": "geltona-oranžinė-raudona",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "padidinti Celsijaus laipsnį"
+  "customUnitLabel": "jaunesnių nei 23 metų žmonių"
 }

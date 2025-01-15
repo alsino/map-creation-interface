@@ -1,19 +1,9 @@
 {
-  "title": "Кои страни от ЕС са най-горещи?",
-  "subtitle": "Покачване на температурите спрямо предходната година",
+  "title": "Кои страни от ЕС предлагат най-добри перспективи за заетост?",
+  "subtitle": "Бъдещият растеж на заетостта в тези страни през 2022-2035 г. се оценява на 5,6%.",
   "textNoteDescription": "Забележка",
-  "textNote": "това е тестова нота",
   "textSourceDescription": "Източник",
-  "textSource": "евростат",
   "linkDataAccessDescription": "Достъп до данните",
   "legend1": "Няма налични данни",
-  "datasetType": "ценности",
-  "datasetUnit": "процента",
-  "colourSchemeType": "последователен",
-  "colourScheme": "жълто-оранжево-червено",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "печалба в градус по Целзий"
+  "customUnitLabel": "хора под 23 г"
 }

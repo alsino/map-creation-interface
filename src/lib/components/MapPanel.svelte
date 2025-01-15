@@ -23,6 +23,7 @@
 	let linkDataAccessDescription;
 	let textNoteDescription;
 	let textNote;
+	let customUnitLabel;
 	let textCountryClick;
 	let extraInfoTexts;
 	let extraInfoLinks;
@@ -76,6 +77,7 @@
 		await getLanguage($selectedLanguage.value);
 	});
 
+	// Function called when lannguage dropdownn is changed
 	async function getLanguage(lang) {
 		try {
 			shouldUpdateMap.set(false); // Prevent ControlPanel updates
@@ -95,6 +97,7 @@
 			textNoteDescription = data.textNoteDescription;
 			textNote = data.textNote;
 			linkDataAccessDescription = data.linkDataAccessDescription;
+			customUnitLabel = data.customUnitLabel;
 
 			mapConfig.set({
 				...$mapConfig, // Spread all existing properties
@@ -106,6 +109,7 @@
 				textNote: data.textNote,
 				linkDataAccessDescription: data.linkDataAccessDescription,
 				legend1: data.legend1,
+				customUnitLabel: data.customUnitLabel,
 				translate: {
 					title: data.title,
 					subtitle: data.subtitle,

@@ -1,19 +1,9 @@
 {
-  "title": "¿Cuáles son los países de la UE más calurosos?",
-  "subtitle": "Aumento de temperaturas respecto al año anterior",
+  "title": "¿Qué países de la UE ofrecen las mejores perspectivas de empleo?",
+  "subtitle": "Se estima que el crecimiento futuro del empleo en estos países en el período 2022-2035 será del 5,6%.",
   "textNoteDescription": "Nota",
-  "textNote": "Esta es una nota de prueba",
   "textSourceDescription": "Fuente",
-  "textSource": "Eurostat",
   "linkDataAccessDescription": "Acceder a los datos",
   "legend1": "No hay datos disponibles",
-  "datasetType": "valores",
-  "datasetUnit": "por ciento",
-  "colourSchemeType": "secuencial",
-  "colourScheme": "amarillo-naranja-rojo",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "ganancia en grados centígrados"
+  "customUnitLabel": "de personas menores de 23 años"
 }

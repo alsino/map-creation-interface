@@ -1,19 +1,9 @@
 {
-  "title": "Quels sont les pays de l’UE les plus chauds ?",
-  "subtitle": "Gain de températures par rapport à l'année précédente",
+  "title": "Quels pays de l’UE offrent les meilleures perspectives d’emploi ?",
+  "subtitle": "La croissance future de l’emploi dans ces pays en 2022-2035 est estimée à 5,6 %.",
   "textNoteDescription": "Note",
-  "textNote": "c'est un test ote",
   "textSourceDescription": "Source",
-  "textSource": "Eurostat",
   "linkDataAccessDescription": "Accéder aux données",
   "legend1": "Aucune donnée disponible",
-  "datasetType": "valeurs",
-  "datasetUnit": "pour cent",
-  "colourSchemeType": "séquentiel",
-  "colourScheme": "jaune-orange-rouge",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "gain en degré Celsius"
+  "customUnitLabel": "des personnes de moins de 23 ans"
 }

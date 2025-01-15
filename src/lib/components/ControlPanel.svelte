@@ -7,13 +7,6 @@
 
 	const shouldInitialize = writable(true);
 
-	// $: console.log('mapConfig state:', {
-	// 	legend1: $mapConfig.legend1,
-	// 	translate: $mapConfig.translate,
-	// 	shouldUpdate: $shouldUpdateMap,
-	// 	shouldInit: $shouldInitialize
-	// });
-
 	// Add at the top of script
 	const EU_COUNTRY_CODES = new Set([
 		'AT',
@@ -196,6 +189,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 						textSource,
 						linkDataAccessDescription,
 						legend1,
+						customUnitLabel,
 						...$mapConfig.parsedData?.reduce((acc, country) => {
 							if (country.text_content) {
 								acc[`extraInfo_${country.id}`] = country.text_content;
@@ -205,9 +199,6 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 					}
 				}
 			: null;
-
-	// $: console.log('configObject', configObject);
-	// $: console.log('mapConfig', $mapConfig);
 
 	$: if (configObject !== null) {
 		mapConfig.set(configObject);
@@ -326,46 +317,11 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 					return acc;
 				}, {})
 			});
-
-			// // After validation succeeds, update mapConfig with fresh state
-			// mapConfig.update((m) => ({
-			// 	...m,
-			// 	parsedData: validatedData,
-			// 	clusters: [], // Reset clusters
-			// 	colorScale: null, // Reset color scale
-			// 	translate: {
-			// 		title,
-			// 		subtitle,
-			// 		textNoteDescription,
-			// 		textNote,
-			// 		textSourceDescription,
-			// 		textSource,
-			// 		linkDataAccessDescription,
-			// 		// Add country text_content entries
-			// 		...validatedData.reduce((acc, country) => {
-			// 			if (country.text_content) {
-			// 				acc[`extraInfo_${country.id}`] = country.text_content;
-			// 			}
-			// 			return acc;
-			// 		}, {})
-			// 	}
-			// }));
 		} catch (error) {
-			// csvError = `Error parsing CSV: ${error.message}`;
-			// mapConfig.update((m) => ({ ...m, parsedData: null }));
-
 			csvError = `Error parsing CSV: ${error.message}`;
 			updateStoreProperty('parsedData', null);
 		}
 	}
-
-	// function handleColorOrderChange(value) {
-	// 	colourSchemeReverse = value;
-	// 	mapConfig.update((m) => ({
-	// 		...m,
-	// 		colourSchemeReverse: value
-	// 	}));
-	// }
 
 	// Update color order handler to use updateStoreProperty
 	function handleColorOrderChange(value) {
@@ -398,11 +354,14 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 		translatedLanguages = [];
 
 		try {
-			// Create translation object with all required fields
+			// Create translation object with all required additional fields to translate
 			const translateData = {
 				...$mapConfig.translate,
-				legend1: $mapConfig.legend1 // Explicitly include legend1 from mapConfig
+				legend1: $mapConfig.legend1, // Explicitly include legend1 from mapConfig
+				customUnitLabel: $mapConfig.customUnitLabel // Explicitly include customUnitLabel from mapConfig
 			};
+
+			console.log('translateData', translateData);
 
 			const response = await fetch('/api/translate', {
 				method: 'POST',
@@ -462,11 +421,11 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 			}
 
 			return {
-				...updates,
-				translate: {
-					...curr.translate,
-					...updates // This will include any cleared title/subtitle
-				}
+				...updates
+				// translate: {
+				// 	...curr.translate,
+				// 	...updates // This will include any cleared title/subtitle
+				// }
 			};
 		});
 	}
@@ -725,24 +684,6 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 		<h3 class="font-bold">Display Options</h3>
 
 		<div class="space-y-2">
-			<!-- <label class="flex items-center">
-				<input
-					type="checkbox"
-					bind:checked={headlineAvailable}
-					on:change={(e) => updateStoreProperty('headlineAvailable', e.target.checked)}
-					class="mr-2"
-				/>
-				Show Headline
-			</label> -->
-			<!-- <label class="flex items-center">
-				<input
-					type="checkbox"
-					bind:checked={subheadlineAvailable}
-					on:change={(e) => updateStoreProperty('subheadlineAvailable', e.target.checked)}
-					class="mr-2"
-				/>
-				Show Subheadline
-			</label> -->
 			<label class="flex items-center">
 				<input
 					type="checkbox"

@@ -1,19 +1,9 @@
 {
-  "title": "Koje su zemlje EU najtoplije?",
-  "subtitle": "Porast temperature u odnosu na prethodnu godinu",
+  "title": "Koje zemlje EU-a nude najbolje izglede za zapošljavanje?",
+  "subtitle": "Budući rast zaposlenosti u tim zemljama u razdoblju 2022. – 2035. procjenjuje se na 5,6%.",
   "textNoteDescription": "Bilješka",
-  "textNote": "ovo je test ote",
   "textSourceDescription": "Izvor",
-  "textSource": "eurostat",
   "linkDataAccessDescription": "Pristupite podacima",
   "legend1": "Nema dostupnih podataka",
-  "datasetType": "vrijednosti",
-  "datasetUnit": "postotak",
-  "colourSchemeType": "sekvencijalni",
-  "colourScheme": "žuto-narančasto-crveno",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "dobitak u stupnju Celzija"
+  "customUnitLabel": "osoba ispod 23"
 }

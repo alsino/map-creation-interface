@@ -1,19 +1,9 @@
 {
-  "title": "Které země EU jsou nejžhavější?",
-  "subtitle": "Nárůst teplot oproti předchozímu roku",
+  "title": "Které země EU nabízejí nejlepší vyhlídky na zaměstnání?",
+  "subtitle": "Budoucí růst zaměstnanosti v těchto zemích v letech 2022-2035 se odhaduje na 5,6 %.",
   "textNoteDescription": "Poznámka",
-  "textNote": "toto je testovací poznámka",
   "textSourceDescription": "Zdroj",
-  "textSource": "Eurostat",
   "linkDataAccessDescription": "Přístup k datům",
   "legend1": "Nejsou k dispozici žádné údaje",
-  "datasetType": "hodnoty",
-  "datasetUnit": "procent",
-  "colourSchemeType": "sekvenční",
-  "colourScheme": "žluto-oranžovo-červená",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "zisk ve stupních Celsia"
+  "customUnitLabel": "lidí do 23 let"
 }

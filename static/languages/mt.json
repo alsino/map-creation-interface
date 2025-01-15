@@ -1,19 +1,9 @@
 {
-  "title": "Liema pajjiżi tal-UE huma l-aktar sħan?",
-  "subtitle": "Żieda fit-temperaturi għas-sena preċedenti",
+  "title": "Liema pajjiżi tal-UE joffru l-aħjar prospetti ta' impjieg?",
+  "subtitle": "It-tkabbir futur tal-impjiegi f'dawn il-pajjiżi fl-2022-2035 huwa stmat għal 5.6%.",
   "textNoteDescription": "Nota",
-  "textNote": "din hija ota tat-test",
   "textSourceDescription": "Sors",
-  "textSource": "eurostat",
   "linkDataAccessDescription": "Aċċessa għad-data",
   "legend1": "L-ebda dejta disponibbli",
-  "datasetType": "valuri",
-  "datasetUnit": "fil-mija",
-  "colourSchemeType": "sekwenzjali",
-  "colourScheme": "isfar-oranġjo-aħmar",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "gwadann fi grad Celsius"
+  "customUnitLabel": "ta’ nies taħt it-23"
 }

@@ -1,5 +1,4 @@
 <script>
-	import { config } from '$lib/stores/config-features';
 	import { fly } from 'svelte/transition';
 	import { countryInfoVisible } from '$lib/stores/shared';
 	import CountryMediaComponent from './CountryMediaComponent.svelte';
@@ -12,8 +11,8 @@
 	export let countryName;
 	export let countryText;
 	export let countryLink;
-	// export let tooltip;
 	export let tooltip = [{ label: '' }];
+	export let mapConfig;
 
 	let width, height;
 	let countryValue;
@@ -25,15 +24,16 @@
 	// 	config.datasetUnit == 'percent' ? formatInt($MOUSE.tooltip.value * 100) : $MOUSE.tooltip.value;
 	$: if (selectedCountry) {
 		countryValue =
-			config.datasetUnit == 'percent'
+			mapConfig.datasetUnit == 'percent'
 				? formatInt(selectedCountry.csvImport.value * 100)
 				: selectedCountry.csvImport.value;
 		// console.log(countryValue)
 	}
 
-	$: countryUnit = config.datasetUnit == 'percent' ? '%' : '';
-	// $: countryLabel = tooltip[0].label;
+	$: countryUnit = mapConfig.datasetUnit == 'percent' ? '%' : '';
 	$: countryLabel = tooltip && tooltip[0] ? tooltip[0].label : '';
+
+	$: console.log('mapConfig', mapConfig);
 </script>
 
 {#if $countryInfoVisible}
@@ -44,6 +44,9 @@
 		in:fly={{ y: $APP_HEIGHT / 2, duration: duration, opacity: 1 }}
 		out:fly={{ y: $APP_HEIGHT / 2, duration: duration, opacity: 1 }}
 	>
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore element_invalid_self_closing_tag -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="icon-close static cursor-pointer text-right transition-all"
 			on:click={() => {
@@ -52,7 +55,7 @@
 		/>
 		<div class="border-b pb-2">
 			<span class="font-bold">{countryName}</span>
-			{#if config.datasetType == 'values'}
+			{#if mapConfig.datasetType == 'values'}
 				{#if $MOUSE.tooltip.value}
 					<span>–</span>
 					<span class="font-bold">{countryValue}{countryUnit}</span> <span>{countryLabel}</span>

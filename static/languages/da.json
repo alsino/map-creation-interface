@@ -1,19 +1,9 @@
 {
-  "title": "Hvilke EU-lande er de hotteste?",
-  "subtitle": "Forøgelse i temperaturer til tidligere år",
+  "title": "Hvilke EU-lande har de bedste beskæftigelsesmuligheder?",
+  "subtitle": "Fremtidig vækst i beskæftigelsen i disse lande i 2022-2035 anslås til 5,6 %.",
   "textNoteDescription": "Note",
-  "textNote": "dette er en testnote",
   "textSourceDescription": "Kilde",
-  "textSource": "eurostat",
-  "linkDataAccessDescription": "Få adgang til dataene",
+  "linkDataAccessDescription": "Få adgang til data",
   "legend1": "Ingen tilgængelige data",
-  "datasetType": "værdier",
-  "datasetUnit": "procent",
-  "colourSchemeType": "sekventiel",
-  "colourScheme": "gul-orange-rød",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "stigning i grader Celsius"
+  "customUnitLabel": "af personer under 23"
 }

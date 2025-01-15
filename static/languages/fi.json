@@ -1,19 +1,9 @@
 {
-  "title": "Mitkä EU-maat ovat kuumimmat?",
-  "subtitle": "Lämpötilan nousu edelliseen vuoteen verrattuna",
+  "title": "Mitkä EU-maat tarjoavat parhaat työllisyysnäkymät?",
+  "subtitle": "Näissä maissa tulevaisuudessa työllisyyden kasvuksi 2022-2035 arvioidaan 5,6 %.",
   "textNoteDescription": "Huom",
-  "textNote": "tämä on testihuomautus",
   "textSourceDescription": "Lähde",
-  "textSource": "eurostat",
   "linkDataAccessDescription": "Käytä tietoja",
   "legend1": "Tietoja ei ole saatavilla",
-  "datasetType": "arvot",
-  "datasetUnit": "prosenttia",
-  "colourSchemeType": "peräkkäinen",
-  "colourScheme": "kelta-oranssi-punainen",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "nousu celsiusasteina"
+  "customUnitLabel": "alle 23-vuotiaista"
 }

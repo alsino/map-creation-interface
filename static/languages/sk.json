@@ -1,19 +1,9 @@
 {
-  "title": "Ktoré krajiny EÚ sú najhorúcejšie?",
-  "subtitle": "Nárast teploty oproti minulému roku",
+  "title": "Ktoré krajiny EÚ ponúkajú najlepšie vyhliadky na zamestnanie?",
+  "subtitle": "Budúci rast zamestnanosti v týchto krajinách v rokoch 2022-2035 sa odhaduje na 5,6 %.",
   "textNoteDescription": "Poznámka",
-  "textNote": "toto je testovacia poznámka",
   "textSourceDescription": "Zdroj",
-  "textSource": "eurostat",
   "linkDataAccessDescription": "Prístup k údajom",
   "legend1": "Nie sú k dispozícii žiadne údaje",
-  "datasetType": "hodnoty",
-  "datasetUnit": "percent",
-  "colourSchemeType": "sekvenčné",
-  "colourScheme": "žlto-oranžovo-červené",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "prírastok v stupňoch Celzia"
+  "customUnitLabel": "ľudí mladších ako 23 rokov"
 }

@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { env } from '$env/dynamic/private';
 
 const { Translate } = v2;
-const googleClient = new Translate({ key: env.API_KEY });
+const googleClient = new Translate({ key: env.GOOGLE_API_KEY });
 
 const languages = [
 	{ value: 'bg', label: 'Bulgarian' },

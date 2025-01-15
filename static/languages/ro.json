@@ -1,19 +1,9 @@
 {
-  "title": "Care țări din UE sunt cele mai tari?",
-  "subtitle": "Creșterea temperaturii față de anul precedent",
+  "title": "Care țări UE oferă cele mai bune perspective de angajare?",
+  "subtitle": "Creșterea viitoare a ocupării forței de muncă în aceste țări în perioada 2022-2035 este estimată la 5,6%.",
   "textNoteDescription": "Nota",
-  "textNote": "aceasta este o nota de testare",
   "textSourceDescription": "Sursă",
-  "textSource": "eurostat",
   "linkDataAccessDescription": "Accesați datele",
   "legend1": "Nu există date disponibile",
-  "datasetType": "valorile",
-  "datasetUnit": "la sută",
-  "colourSchemeType": "secvenţial",
-  "colourScheme": "galben-portocaliu-rosu",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "câștig în grade Celsius"
+  "customUnitLabel": "a persoanelor sub 23 de ani"
 }

@@ -1,19 +1,9 @@
 {
-  "title": "Katere države EU so najbolj vroče?",
-  "subtitle": "Zvišanje temperature glede na prejšnje leto",
+  "title": "Katere države EU ponujajo najboljše zaposlitvene možnosti?",
+  "subtitle": "Prihodnja rast zaposlenosti v teh državah v letih 2022–2035 je ocenjena na 5,6 %.",
   "textNoteDescription": "Opomba",
-  "textNote": "to je testna beseda",
   "textSourceDescription": "Vir",
-  "textSource": "eurostat",
   "linkDataAccessDescription": "Dostop do podatkov",
   "legend1": "Ni podatkov",
-  "datasetType": "vrednosti",
-  "datasetUnit": "odstotkov",
-  "colourSchemeType": "zaporedno",
-  "colourScheme": "rumeno-oranžno-rdeča",
-  "linkDataAccess": "jgvsdcjhedj",
-  "legend1Color": "#E0E0E0",
-  "colorBarFirstValue": "20",
-  "colorBarLastValue": "60",
-  "customUnitLabel": "dobiček v stopinjah Celzija"
+  "customUnitLabel": "oseb, mlajših od 23 let"
 }
