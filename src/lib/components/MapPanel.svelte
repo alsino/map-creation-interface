@@ -154,10 +154,10 @@
 	}
 </script>
 
-<div class={isFullscreen ? 'h-screen w-full' : 'w-1/2'}>
+<div class={isFullscreen ? 'h-screen w-full overflow-hidden' : 'h-screen w-1/2 overflow-hidden'}>
 	<div
 		id="euranet-map"
-		class="h-full {isFullscreen ? 'p-0' : 'p-4'}"
+		class="h-full overflow-y-auto {isFullscreen ? 'p-0  pt-0' : 'p-32 pt-12'}"
 		bind:clientHeight={$APP_HEIGHT}
 		bind:clientWidth={innerWidth}
 	>
