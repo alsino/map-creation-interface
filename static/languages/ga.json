@@ -1,11 +1,19 @@
 {
-  "title": "Cé na tíortha san AE a thairgeann na hionchais fostaíochta is fearr?",
-  "subtitle": "Meastar gur 5.6% an fás fostaíochta amach anseo sna tíortha seo in 2022-2035.",
+  "title": "Cad iad na tíortha AE is teo?",
+  "subtitle": "Gnóthachan i dteocht go dtí an bhliain roimhe sin",
   "textNoteDescription": "Nóta",
-  "textNote": "Nóta an-chruthaitheach",
+  "textNote": "is óta tástála é seo",
   "textSourceDescription": "Foinse",
-  "textSource": "OECD",
+  "textSource": "eurostat",
   "linkDataAccessDescription": "Faigh rochtain ar na sonraí",
-  "extraInfo_DE": "Luathaíonn an Ghearmáin Rolladh Amach Fuinnimh In-athnuaite, Dírítear 80% ar Chumhacht Ghlan faoi 2030",
-  "extraInfo_FR": "Formheasann Parlaimint na Fraince Bille um Athchóiriú an Mhór-Imirce i measc Agóidí ar fud na tíre"
+  "legend1": "Níl aon sonraí ar fáil",
+  "datasetType": "luachanna",
+  "datasetUnit": "faoin gcéad",
+  "colourSchemeType": "seicheamhach",
+  "colourScheme": "buí-oráiste-dearg",
+  "linkDataAccess": "jgvsdcjhedj",
+  "legend1Color": "#E0E0E0",
+  "colorBarFirstValue": "20",
+  "colorBarLastValue": "60",
+  "customUnitLabel": "gnóthachan i gcéim Celsius"
 }

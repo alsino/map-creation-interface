@@ -1,11 +1,19 @@
 {
-  "title": "Vilka EU-länder erbjuder de bästa sysselsättningsmöjligheterna?",
-  "subtitle": "Framtida sysselsättningstillväxt i dessa länder 2022-2035 beräknas till 5,6 %.",
+  "title": "Vilka EU-länder är hetast?",
+  "subtitle": "Ökning i temperaturer jämfört med föregående år",
   "textNoteDescription": "Notera",
-  "textNote": "En mycket kreativ anteckning",
+  "textNote": "detta är en testanteckning",
   "textSourceDescription": "Källa",
-  "textSource": "OECD",
+  "textSource": "eurostat",
   "linkDataAccessDescription": "Få åtkomst till data",
-  "extraInfo_DE": "Tyskland accelererar utbyggnaden av förnybar energi, siktar på 80 % ren kraft till 2030",
-  "extraInfo_FR": "Det franska parlamentet godkänner lagförslaget om stora invandringsreformer under rikstäckande protester"
+  "legend1": "Inga data tillgängliga",
+  "datasetType": "värden",
+  "datasetUnit": "procent",
+  "colourSchemeType": "sekventiell",
+  "colourScheme": "gul-orange-röd",
+  "linkDataAccess": "jgvsdcjhedj",
+  "legend1Color": "#E0E0E0",
+  "colorBarFirstValue": "20",
+  "colorBarLastValue": "60",
+  "customUnitLabel": "ökning i grader Celsius"
 }

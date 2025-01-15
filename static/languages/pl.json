@@ -1,11 +1,19 @@
 {
-  "title": "Które kraje UE oferują najlepsze perspektywy zatrudnienia?",
-  "subtitle": "Szacuje się, że przyszły wzrost zatrudnienia w tych krajach w latach 2022–2035 wyniesie 5,6%.",
+  "title": "Które kraje UE są najgorętsze?",
+  "subtitle": "Wzrost temperatury w porównaniu z poprzednim rokiem",
   "textNoteDescription": "Notatka",
-  "textNote": "Bardzo kreatywna notatka",
+  "textNote": "to jest notatka testowa",
   "textSourceDescription": "Źródło",
-  "textSource": "OECD",
+  "textSource": "Eurostat",
   "linkDataAccessDescription": "Uzyskaj dostęp do danych",
-  "extraInfo_DE": "Niemcy przyspieszają wdrażanie energii odnawialnej, dążąc do 80% czystej energii do 2030 r.",
-  "extraInfo_FR": "Parlament francuski zatwierdza projekt ustawy o dużej reformie imigracyjnej w obliczu ogólnokrajowych protestów"
+  "legend1": "Brak dostępnych danych",
+  "datasetType": "wartości",
+  "datasetUnit": "procent",
+  "colourSchemeType": "ciągły",
+  "colourScheme": "żółto-pomarańczowo-czerwony",
+  "linkDataAccess": "jgvsdcjhedj",
+  "legend1Color": "#E0E0E0",
+  "colorBarFirstValue": "20",
+  "colorBarLastValue": "60",
+  "customUnitLabel": "zysk w stopniach Celsjusza"
 }

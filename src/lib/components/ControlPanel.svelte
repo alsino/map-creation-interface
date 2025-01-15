@@ -1,8 +1,18 @@
 <!-- src/lib/components/ControlPanel.svelte -->
 <script>
-	import { mapConfig } from '$lib/stores/config-map';
+	import { mapConfig, shouldUpdateMap } from '$lib/stores/config-map';
 	import { dataReady } from '$lib/stores/shared';
 	import { csvParse } from 'd3-dsv';
+	import { writable } from 'svelte/store';
+
+	const shouldInitialize = writable(true);
+
+	// $: console.log('mapConfig state:', {
+	// 	legend1: $mapConfig.legend1,
+	// 	translate: $mapConfig.translate,
+	// 	shouldUpdate: $shouldUpdateMap,
+	// 	shouldInit: $shouldInitialize
+	// });
 
 	// Add at the top of script
 	const EU_COUNTRY_CODES = new Set([
@@ -133,69 +143,77 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 	let textDataAccessAvailable = $mapConfig.textDataAccessAvailable;
 	let linkDataAccessDescription = $mapConfig.linkDataAccessDescription;
 	let linkDataAccess = $mapConfig.linkDataAccess;
+	let legend1 = $mapConfig.legend1;
 	let legend1Color = $mapConfig.legend1Color;
-	let legend2Color = $mapConfig.legend2Color;
-	let legend3Color = $mapConfig.legend3Color;
-	let legend4Color = $mapConfig.legend4Color;
 	let colorBarFirstValue = $mapConfig.colorBarFirstValue;
 	let colorBarLastValue = $mapConfig.colorBarLastValue;
 	let parsedData = $mapConfig.parsedData;
 	let customUnitLabelAvailable = $mapConfig.customUnitLabelAvailable;
 	let customUnitLabel = $mapConfig.customUnitLabel;
 
-	$: mapConfig.set({
-		title: title,
-		subtitle: subtitle,
-		colourSchemeClasses: colourSchemeClasses,
-		data: data,
-		parsedData: data?.trim() ? parsedData || $mapConfig.parsedData : null,
-		datasetType: datasetType,
-		datasetUnit: datasetUnit,
-		percentRounded: percentRounded,
-		colourSchemeType: colourSchemeType,
-		colourScheme: colourScheme,
-		colourSchemeReverse: colourSchemeReverse,
-		colourSchemeClasses: colourSchemeClasses,
-		headlineAvailable: headlineAvailable,
-		subheadlineAvailable: subheadlineAvailable,
-		tooltipAvailable: tooltipAvailable,
-		scaleBarAvailable: scaleBarAvailable,
-		overrideScaleValues: overrideScaleValues,
-		legendAvailable: legendAvailable,
-		textSourceAvailable: textSourceAvailable,
-		textSourceDescription: textSourceDescription,
-		textSource: textSource,
-		textNoteAvailable: textNoteAvailable,
-		textNoteDescription: textNoteDescription,
-		textNote: textNote,
-		textDataAccessAvailable: textDataAccessAvailable,
-		linkDataAccessDescription: linkDataAccessDescription,
-		linkDataAccess: linkDataAccess,
-		legend1Color: legend1Color,
-		legend2Color: legend2Color,
-		legend3Color: legend3Color,
-		legend4Color: legend4Color,
-		colorBarFirstValue: colorBarFirstValue,
-		colorBarLastValue: colorBarLastValue,
-		customUnitLabelAvailable: customUnitLabelAvailable,
-		customUnitLabel: customUnitLabel,
-		translate: {
-			title,
-			subtitle,
-			textNoteDescription,
-			textNote,
-			textSourceDescription,
-			textSource,
-			linkDataAccessDescription,
-			// Add country text_content with underscore in key
-			...$mapConfig.parsedData?.reduce((acc, country) => {
-				if (country.text_content) {
-					acc[`extraInfo_${country.id}`] = country.text_content;
+	$: configObject =
+		$shouldUpdateMap && $shouldInitialize
+			? {
+					title: title,
+					subtitle: subtitle,
+					colourSchemeClasses: colourSchemeClasses,
+					data: data,
+					parsedData: data?.trim() ? parsedData || $mapConfig.parsedData : null,
+					datasetType: datasetType,
+					datasetUnit: datasetUnit,
+					percentRounded: percentRounded,
+					colourSchemeType: colourSchemeType,
+					colourScheme: colourScheme,
+					colourSchemeReverse: colourSchemeReverse,
+					colourSchemeClasses: colourSchemeClasses,
+					headlineAvailable: headlineAvailable,
+					subheadlineAvailable: subheadlineAvailable,
+					tooltipAvailable: tooltipAvailable,
+					scaleBarAvailable: scaleBarAvailable,
+					overrideScaleValues: overrideScaleValues,
+					legendAvailable: legendAvailable,
+					textSourceAvailable: textSourceAvailable,
+					textSourceDescription: textSourceDescription,
+					textSource: textSource,
+					textNoteAvailable: textNoteAvailable,
+					textNoteDescription: textNoteDescription,
+					textNote: textNote,
+					textDataAccessAvailable: textDataAccessAvailable,
+					linkDataAccessDescription: linkDataAccessDescription,
+					linkDataAccess: linkDataAccess,
+					legend1: legend1,
+					legend1Color: legend1Color,
+					colorBarFirstValue: colorBarFirstValue,
+					colorBarLastValue: colorBarLastValue,
+					customUnitLabelAvailable: customUnitLabelAvailable,
+					customUnitLabel: customUnitLabel,
+					translate: {
+						title,
+						subtitle,
+						textNoteDescription,
+						textNote,
+						textSourceDescription,
+						textSource,
+						linkDataAccessDescription,
+						legend1,
+						...$mapConfig.parsedData?.reduce((acc, country) => {
+							if (country.text_content) {
+								acc[`extraInfo_${country.id}`] = country.text_content;
+							}
+							return acc;
+						}, {})
+					}
 				}
-				return acc;
-			}, {})
-		}
-	});
+			: null;
+
+	// $: console.log('configObject', configObject);
+	// $: console.log('mapConfig', $mapConfig);
+
+	$: if (configObject !== null) {
+		mapConfig.set(configObject);
+		// console.log('mapConfig', $mapConfig);
+		shouldInitialize.set(false);
+	}
 
 	$: data && handleCSVChange(data);
 
@@ -204,12 +222,9 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 		csvWarnings = [];
 
 		if (!csvText?.trim()) {
-			mapConfig.update((m) => ({
-				...m,
-				parsedData: null,
-				clusters: [],
-				colorScale: null
-			}));
+			updateStoreProperty('parsedData', null);
+			updateStoreProperty('clusters', []);
+			updateStoreProperty('colorScale', null);
 			return;
 		}
 
@@ -292,41 +307,84 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 				csvWarnings.push(`Missing data for countries: ${missingEUCountries.join(', ')}`);
 			}
 
-			// After validation succeeds, update mapConfig with fresh state
-			mapConfig.update((m) => ({
-				...m,
-				parsedData: validatedData,
-				clusters: [], // Reset clusters
-				colorScale: null, // Reset color scale
-				translate: {
-					title,
-					subtitle,
-					textNoteDescription,
-					textNote,
-					textSourceDescription,
-					textSource,
-					linkDataAccessDescription,
-					// Add country text_content entries
-					...validatedData.reduce((acc, country) => {
-						if (country.text_content) {
-							acc[`extraInfo_${country.id}`] = country.text_content;
-						}
-						return acc;
-					}, {})
-				}
-			}));
+			// After validation succeeds, update with the new data
+			updateStoreProperty('parsedData', validatedData);
+			updateStoreProperty('clusters', []);
+			updateStoreProperty('colorScale', null);
+			updateStoreProperty('translate', {
+				title,
+				subtitle,
+				textNoteDescription,
+				textNote,
+				textSourceDescription,
+				textSource,
+				linkDataAccessDescription,
+				...validatedData.reduce((acc, country) => {
+					if (country.text_content) {
+						acc[`extraInfo_${country.id}`] = country.text_content;
+					}
+					return acc;
+				}, {})
+			});
+
+			// // After validation succeeds, update mapConfig with fresh state
+			// mapConfig.update((m) => ({
+			// 	...m,
+			// 	parsedData: validatedData,
+			// 	clusters: [], // Reset clusters
+			// 	colorScale: null, // Reset color scale
+			// 	translate: {
+			// 		title,
+			// 		subtitle,
+			// 		textNoteDescription,
+			// 		textNote,
+			// 		textSourceDescription,
+			// 		textSource,
+			// 		linkDataAccessDescription,
+			// 		// Add country text_content entries
+			// 		...validatedData.reduce((acc, country) => {
+			// 			if (country.text_content) {
+			// 				acc[`extraInfo_${country.id}`] = country.text_content;
+			// 			}
+			// 			return acc;
+			// 		}, {})
+			// 	}
+			// }));
 		} catch (error) {
+			// csvError = `Error parsing CSV: ${error.message}`;
+			// mapConfig.update((m) => ({ ...m, parsedData: null }));
+
 			csvError = `Error parsing CSV: ${error.message}`;
-			mapConfig.update((m) => ({ ...m, parsedData: null }));
+			updateStoreProperty('parsedData', null);
 		}
 	}
 
+	// function handleColorOrderChange(value) {
+	// 	colourSchemeReverse = value;
+	// 	mapConfig.update((m) => ({
+	// 		...m,
+	// 		colourSchemeReverse: value
+	// 	}));
+	// }
+
+	// Update color order handler to use updateStoreProperty
 	function handleColorOrderChange(value) {
-		colourSchemeReverse = value;
-		mapConfig.update((m) => ({
-			...m,
-			colourSchemeReverse: value
-		}));
+		updateStoreProperty('colourSchemeReverse', value);
+	}
+
+	// Function to handle checkbox changes
+	function handleCheckboxChange(property, checked) {
+		updateStoreProperty(property, checked);
+	}
+
+	// Function to handle select changes
+	function handleSelectChange(property, value) {
+		updateStoreProperty(property, value);
+	}
+
+	// Function to handle number input changes
+	function handleNumberChange(property, value) {
+		updateStoreProperty(property, Number(value));
 	}
 
 	let translationLoading = false;
@@ -340,12 +398,18 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 		translatedLanguages = [];
 
 		try {
+			// Create translation object with all required fields
+			const translateData = {
+				...$mapConfig.translate,
+				legend1: $mapConfig.legend1 // Explicitly include legend1 from mapConfig
+			};
+
 			const response = await fetch('/api/translate', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify($mapConfig.translate)
+				body: JSON.stringify(translateData)
 			});
 
 			const data = await response.json();
@@ -379,6 +443,33 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 			translationLoading = false;
 		}
 	}
+
+	// Create a function that handles updates for all text-related properties
+	function updateStoreProperty(property, value) {
+		mapConfig.update((curr) => {
+			// Special handling for headline and subheadline availability
+			const updates = {
+				...curr,
+				[property]: value
+			};
+
+			// If toggling headline/subheadline off, clear the related text
+			if (property === 'headlineAvailable' && !value) {
+				updates.title = '';
+			}
+			if (property === 'subheadlineAvailable' && !value) {
+				updates.subtitle = '';
+			}
+
+			return {
+				...updates,
+				translate: {
+					...curr.translate,
+					...updates // This will include any cleared title/subtitle
+				}
+			};
+		});
+	}
 </script>
 
 <div class="space-y-4 rounded-lg bg-white p-6 text-left shadow-sm">
@@ -389,6 +480,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 			id="title"
 			name="title"
 			bind:value={title}
+			on:input={(e) => updateStoreProperty('title', e.target.value)}
 			placeholder="Enter map title"
 			class="w-full rounded border p-2"
 		/>
@@ -400,6 +492,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 			id="subtitle"
 			name="subtitle"
 			bind:value={subtitle}
+			on:input={(e) => updateStoreProperty('subtitle', e.target.value)}
 			placeholder="Enter subtitle"
 			class="w-full rounded border p-2"
 		/>
@@ -412,6 +505,10 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 			id="data"
 			name="data"
 			bind:value={data}
+			on:input={(e) => {
+				updateStoreProperty('data', e.target.value);
+				handleCSVChange(e.target.value);
+			}}
 			class="h-32 w-full rounded border p-2 {csvError
 				? 'border-red-500'
 				: csvWarnings.length
@@ -450,10 +547,11 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 	<div class="space-y-2">
 		<label for="source">Data Source</label>
 		<input
-			id="source"
-			name="source"
+			id="textSource"
+			name="textSource"
 			bind:value={textSource}
-			placeholder="Name data source"
+			on:input={(e) => updateStoreProperty('textSource', e.target.value)}
+			placeholder="Enter source"
 			class="w-full rounded border p-2"
 		/>
 	</div>
@@ -465,6 +563,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 			id="note"
 			name="note"
 			bind:value={textNote}
+			on:input={(e) => updateStoreProperty('textNote', e.target.value)}
 			class="h-16 w-full rounded border p-2"
 			placeholder="Enter text note"
 		/>
@@ -476,6 +575,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 			id="data-link"
 			name="data-link"
 			bind:value={linkDataAccess}
+			on:input={(e) => updateStoreProperty('linkDataAccess', e.target.value)}
 			placeholder="Enter link to data set"
 			class="w-full rounded border p-2"
 		/>
@@ -487,7 +587,12 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 
 		<div class="space-y-2">
 			<label for="datasetType">Dataset Type</label>
-			<select id="datasetType" bind:value={datasetType} class="w-full rounded border p-2">
+			<select
+				id="datasetType"
+				bind:value={datasetType}
+				on:change={(e) => handleSelectChange('datasetType', e.target.value)}
+				class="w-full rounded border p-2"
+			>
 				<option value="values">Values</option>
 				<option value="binary">Binary</option>
 			</select>
@@ -498,6 +603,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 			<select
 				id="datasetUnit"
 				bind:value={datasetUnit}
+				on:change={(e) => handleSelectChange('datasetUnit', e.target.value)}
 				class="w-full rounded border p-2"
 				disabled={datasetType === 'binary'}
 			>
@@ -509,7 +615,12 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 		{#if datasetUnit === 'percent'}
 			<div class="space-y-2">
 				<label class="flex items-center">
-					<input type="checkbox" bind:checked={percentRounded} class="mr-2" />
+					<input
+						type="checkbox"
+						bind:checked={percentRounded}
+						on:change={(e) => updateStoreProperty('percentRounded', e.target.checked)}
+						class="mr-2"
+					/>
 					Round Percentages (to nearest whole number)
 				</label>
 			</div>
@@ -517,7 +628,12 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 
 		<div class="space-y-2">
 			<label class="flex items-center">
-				<input type="checkbox" bind:checked={customUnitLabelAvailable} class="mr-2" />
+				<input
+					type="checkbox"
+					bind:checked={customUnitLabelAvailable}
+					on:change={(e) => updateStoreProperty('customUnitLabelAvailable', e.target.checked)}
+					class="mr-2"
+				/>
 				Custom Tooltip Label
 			</label>
 		</div>
@@ -528,6 +644,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 					id="data-link"
 					name="data-link"
 					bind:value={customUnitLabel}
+					on:input={(e) => updateStoreProperty('customUnitLabel', e.target.value)}
 					placeholder="e.g. of GDP"
 					class="w-full rounded border p-2"
 				/>
@@ -540,6 +657,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 				<select
 					id="colorSchemeType"
 					bind:value={colourSchemeType}
+					on:change={(e) => updateStoreProperty('colourSchemeType', e.target.value)}
 					class="w-full rounded border p-2"
 				>
 					{#each colorSchemeTypes as type}
@@ -549,8 +667,12 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 			</div>
 
 			<div class="space-y-2">
-				<label for="colorScheme">Color Scheme</label>
-				<select id="colorScheme" bind:value={colourScheme} class="w-full rounded border p-2">
+				<select
+					id="colorScheme"
+					bind:value={colourScheme}
+					on:change={(e) => updateStoreProperty('colourScheme', e.target.value)}
+					class="w-full rounded border p-2"
+				>
 					{#each colorSchemes[colourSchemeType] as scheme}
 						<option value={scheme}>{scheme}</option>
 					{/each}
@@ -591,6 +713,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 					min="3"
 					max="9"
 					bind:value={colourSchemeClasses}
+					on:input={(e) => updateStoreProperty('colourSchemeClasses', Number(e.target.value))}
 					class="w-full rounded border p-2"
 				/>
 			</div>
@@ -602,24 +725,49 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 		<h3 class="font-bold">Display Options</h3>
 
 		<div class="space-y-2">
-			<label class="flex items-center">
-				<input type="checkbox" bind:checked={headlineAvailable} class="mr-2" />
+			<!-- <label class="flex items-center">
+				<input
+					type="checkbox"
+					bind:checked={headlineAvailable}
+					on:change={(e) => updateStoreProperty('headlineAvailable', e.target.checked)}
+					class="mr-2"
+				/>
 				Show Headline
-			</label>
-			<label class="flex items-center">
-				<input type="checkbox" bind:checked={subheadlineAvailable} class="mr-2" />
+			</label> -->
+			<!-- <label class="flex items-center">
+				<input
+					type="checkbox"
+					bind:checked={subheadlineAvailable}
+					on:change={(e) => updateStoreProperty('subheadlineAvailable', e.target.checked)}
+					class="mr-2"
+				/>
 				Show Subheadline
-			</label>
+			</label> -->
 			<label class="flex items-center">
-				<input type="checkbox" bind:checked={tooltipAvailable} class="mr-2" />
+				<input
+					type="checkbox"
+					bind:checked={tooltipAvailable}
+					on:change={(e) => handleCheckboxChange('tooltipAvailable', e.target.checked)}
+					class="mr-2"
+				/>
 				Show Tooltips
 			</label>
 			<label class="flex items-center">
-				<input type="checkbox" bind:checked={legendAvailable} class="mr-2" />
+				<input
+					type="checkbox"
+					bind:checked={legendAvailable}
+					on:change={(e) => handleCheckboxChange('legendAvailable', e.target.checked)}
+					class="mr-2"
+				/>
 				Show Legend
 			</label>
 			<label class="flex items-center">
-				<input type="checkbox" bind:checked={scaleBarAvailable} class="mr-2" />
+				<input
+					type="checkbox"
+					bind:checked={scaleBarAvailable}
+					on:change={(e) => handleCheckboxChange('scaleBarAvailable', e.target.checked)}
+					class="mr-2"
+				/>
 				Show Scale Bar
 			</label>
 		</div>
@@ -629,8 +777,13 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 				<h3 class="font-bold">Scale Bar Values</h3>
 				<div class="space-y-2">
 					<label class="flex items-center">
-						<input type="checkbox" bind:checked={overrideScaleValues} class="mr-2" />
-						Override Scale Values
+						<input
+							type="checkbox"
+							bind:checked={overrideScaleValues}
+							on:change={(e) => handleCheckboxChange('overrideScaleValues', e.target.checked)}
+							class="mr-2"
+						/>
+						Override Scale Bar Values
 					</label>
 
 					{#if overrideScaleValues}
@@ -640,6 +793,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 								id="colorBarFirstValue"
 								type="number"
 								bind:value={colorBarFirstValue}
+								on:input={(e) => updateStoreProperty('colorBarFirstValue', e.target.value)}
 								class="w-full rounded border p-2"
 							/>
 						</div>
@@ -649,6 +803,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 								id="colorBarLastValue"
 								type="number"
 								bind:value={colorBarLastValue}
+								on:input={(e) => updateStoreProperty('colorBarLastValue', e.target.value)}
 								class="w-full rounded border p-2"
 							/>
 						</div>

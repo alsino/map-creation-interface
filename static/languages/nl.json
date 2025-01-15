@@ -1,11 +1,19 @@
 {
-  "title": "Welke EU-landen bieden de beste werkgelegenheidsvooruitzichten?",
-  "subtitle": "De toekomstige werkgelegenheidsgroei in deze landen in de periode 2022-2035 wordt geschat op 5,6%.",
+  "title": "Welke EU-landen zijn het populairst?",
+  "subtitle": "Temperatuurstijging ten opzichte van vorig jaar",
   "textNoteDescription": "Opmerking",
-  "textNote": "Een zeer creatieve noot",
+  "textNote": "dit is een test ote",
   "textSourceDescription": "Bron",
-  "textSource": "OESO",
+  "textSource": "eurostat",
   "linkDataAccessDescription": "Toegang tot de gegevens",
-  "extraInfo_DE": "Duitsland versnelt uitrol van hernieuwbare energie, streeft naar 80% schone energie in 2030",
-  "extraInfo_FR": "Frans parlement keurt groot wetsvoorstel immigratiehervorming goed te midden van landelijke protesten"
+  "legend1": "Geen gegevens beschikbaar",
+  "datasetType": "waarden",
+  "datasetUnit": "procent",
+  "colourSchemeType": "sequentieel",
+  "colourScheme": "geel-oranje-rood",
+  "linkDataAccess": "jgvsdcjhedj",
+  "legend1Color": "#E0E0E0",
+  "colorBarFirstValue": "20",
+  "colorBarLastValue": "60",
+  "customUnitLabel": "winst in graden Celsius"
 }

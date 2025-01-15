@@ -1,11 +1,19 @@
 {
-  "title": "Kuras ES valstis piedāvā vislabākās nodarbinātības izredzes?",
-  "subtitle": "Nākotnes nodarbinātības pieaugums šajās valstīs 2022.-2035.gadā tiek lēsts 5,6% apmērā.",
+  "title": "Kuras ES valstis ir karstākās?",
+  "subtitle": "Temperatūras pieaugums salīdzinājumā ar iepriekšējo gadu",
   "textNoteDescription": "Piezīme",
-  "textNote": "Ļoti radoša piezīme",
+  "textNote": "šī ir testa piezīme",
   "textSourceDescription": "Avots",
-  "textSource": "ESAO",
+  "textSource": "Eurostat",
   "linkDataAccessDescription": "Piekļūstiet datiem",
-  "extraInfo_DE": "Vācija paātrina atjaunojamās enerģijas ieviešanu, paredz 80% tīras enerģijas līdz 2030. gadam",
-  "extraInfo_FR": "Francijas parlaments valsts mēroga protestu laikā apstiprina nozīmīgo imigrācijas reformas likumprojektu"
+  "legend1": "Nav pieejami dati",
+  "datasetType": "vērtības",
+  "datasetUnit": "procentiem",
+  "colourSchemeType": "secīgi",
+  "colourScheme": "dzeltens-oranžs-sarkans",
+  "linkDataAccess": "jgvsdcjhedj",
+  "legend1Color": "#E0E0E0",
+  "colorBarFirstValue": "20",
+  "colorBarLastValue": "60",
+  "customUnitLabel": "pieaugums pēc Celsija grādiem"
 }

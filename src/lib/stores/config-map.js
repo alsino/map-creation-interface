@@ -27,12 +27,12 @@ export const mapConfig = writable({
 	textDataAccessAvailable: true,
 	linkDataAccessDescription: 'Access the data',
 	linkDataAccess: '',
+	legend1: 'No data available',
 	legend1Color: '#E0E0E0',
-	legend2Color: 'red',
-	legend3Color: 'blue',
-	legend4Color: 'green',
 	parsedData: null,
 	data: ``,
 	customUnitLabelAvailable: false,
 	customUnitLabel: undefined
 });
+
+export const shouldUpdateMap = writable(true);

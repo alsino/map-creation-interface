@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { geoIdentity } from 'd3-geo';
 	import { feature } from 'topojson-client';
-	import { mapConfig } from '$lib/stores/config-map';
+	import { mapConfig, shouldUpdateMap } from '$lib/stores/config-map';
 	import { onMount } from 'svelte';
 	import { APP_HEIGHT, mobileSize, isMobile } from '$lib/stores/shared';
 	import { selectedLanguage } from '$lib/stores/shared';
@@ -14,8 +14,6 @@
 
 	let heading;
 	let subheading;
-	let legend;
-	let legendEntries;
 	let tooltip;
 	let tooltipEntries;
 	let textSourceDescription;
@@ -33,7 +31,9 @@
 
 	let transformedGeoData;
 
-	$: console.log($mapConfig);
+	// $: {
+	// 	console.log($mapConfig);
+	// }
 
 	async function fetchAndTransformGeoData() {
 		const res = await fetch('/data/geodata/europe-20m.json');
@@ -78,15 +78,16 @@
 
 	async function getLanguage(lang) {
 		try {
-			console.log('Fetching language:', lang);
+			shouldUpdateMap.set(false); // Prevent ControlPanel updates
+
 			const response = await fetch(`/languages/${lang}.json`);
 			if (!response.ok) {
 				throw new Error(`Failed to load language file: ${response.statusText}`);
 			}
 
 			const data = await response.json();
-			console.log('Language data loaded:', data);
 
+			// Update your local variables
 			heading = data.title;
 			subheading = data.subtitle;
 			textSourceDescription = data.textSourceDescription;
@@ -95,43 +96,27 @@
 			textNote = data.textNote;
 			linkDataAccessDescription = data.linkDataAccessDescription;
 
-			// // Update mapConfig with translated values
-			// mapConfig.set({
-			// 	...$mapConfig, // Spread the current values
-			// 	title: data.title,
-			// 	subtitle: data.subtitle,
-			// 	textSourceDescription: data.textSourceDescription,
-			// 	textSource: data.textSource,
-			// 	textNoteDescription: data.textNoteDescription,
-			// 	textNote: data.textNote,
-			// 	linkDataAccessDescription: data.linkDataAccessDescription,
-			// 	// Preserve other mapConfig values but update translate object
-			// 	translate: {
-			// 		title: data.title,
-			// 		subtitle: data.subtitle,
-			// 		textNoteDescription: data.textNoteDescription,
-			// 		textNote: data.textNote,
-			// 		textSourceDescription: data.textSourceDescription,
-			// 		textSource: data.textSource,
-			// 		linkDataAccessDescription: data.linkDataAccessDescription,
-			// 		// Keep existing extraInfo entries
-			// 		...Object.fromEntries(
-			// 			Object.entries(data)
-			// 				.filter(([key]) => key.startsWith('extraInfo_'))
-			// 				.map(([key, value]) => [key, value])
-			// 		)
-			// 	}
-			// });
-
-			console.log('Updated mapConfig:', $mapConfig);
-
-			// LEGEND
-			legendEntries = Object.keys(data).filter((item) => item.includes('legend'));
-			legend = legendEntries.map((item) => ({
-				[item]: data[item],
-				label: data[item],
-				color: $mapConfig[`${item}Color`]
-			}));
+			mapConfig.set({
+				...$mapConfig, // Spread all existing properties
+				title: data.title,
+				subtitle: data.subtitle,
+				textSourceDescription: data.textSourceDescription,
+				textSource: data.textSource,
+				textNoteDescription: data.textNoteDescription,
+				textNote: data.textNote,
+				linkDataAccessDescription: data.linkDataAccessDescription,
+				legend1: data.legend1,
+				translate: {
+					title: data.title,
+					subtitle: data.subtitle,
+					textNoteDescription: data.textNoteDescription,
+					textNote: data.textNote,
+					textSourceDescription: data.textSourceDescription,
+					textSource: data.textSource,
+					linkDataAccessDescription: data.linkDataAccessDescription,
+					legend1: data.legend1
+				}
+			});
 
 			// TOOLTIP
 			tooltipEntries = Object.keys(data).filter((item) => item.includes('tooltip'));
@@ -197,20 +182,19 @@
 
 		<div id="chart" class="mt-8">
 			<div id="chart-header">
-				{#if heading}
-					<h1 class="text-xl font-bold">{heading}</h1>
+				{#if $mapConfig.title}
+					<h1 class="text-xl font-bold">{$mapConfig.title}</h1>
 				{/if}
-				{#if subheading}
-					<h3 class="text-md">{subheading}</h3>
+				{#if $mapConfig.subtitle}
+					<h3 class="text-md">{$mapConfig.subtitle}</h3>
 				{/if}
 			</div>
 
 			<div id="chart-body" class="mt-4">
-				{#if legend && tooltip}
+				{#if tooltip}
 					<div class="wrapper">
 						<MapChoropleth
 							mapConfig={$mapConfig}
-							{legend}
 							{tooltip}
 							{extraInfoTexts}
 							{extraInfoLinks}
@@ -221,21 +205,23 @@
 			</div>
 
 			<div id="source-notes" class="mt-2 text-xs">
-				{#if textSource}
+				{#if $mapConfig.textSource}
 					<div>
-						<span class="font-bold">{textSourceDescription}: </span>
-						<span>{textSource}</span>
+						<span class="font-bold">{$mapConfig.textSourceDescription}: </span>
+						<span>{$mapConfig.textSource}</span>
 					</div>
 				{/if}
-				{#if textNote}
+				{#if $mapConfig.textNote}
 					<div>
-						<span class="font-bold">{textNoteDescription}: </span>
-						<span>{textNote}</span>
+						<span class="font-bold">{$mapConfig.textNoteDescription}: </span>
+						<span>{$mapConfig.textNote}</span>
 					</div>
 				{/if}
 				{#if $mapConfig.linkDataAccess}
 					<div class="underline">
-						<a target="_blank" href={$mapConfig.linkDataAccess}>{linkDataAccessDescription}</a>
+						<a target="_blank" href={$mapConfig.linkDataAccess}
+							>{$mapConfig.linkDataAccessDescription}
+						</a>
 					</div>
 				{/if}
 			</div>

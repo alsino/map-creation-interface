@@ -1,16 +1,12 @@
 <script>
-	export let legend;
+	export let color;
+	export let label;
 </script>
 
 <div class="legend absolute bottom-3 right-3 rounded border bg-white p-2 text-sm">
-	{#each legend as item}
-		<div>
-			<span
-				class="dot mr-2 inline-block rounded-full"
-				style="background-color: {item.color}"
-			/>{item.label}
-		</div>
-	{/each}
+	<div>
+		<span class="dot mr-2 inline-block rounded-full" style="background-color: {color}" />{label}
+	</div>
 </div>
 
 <style>

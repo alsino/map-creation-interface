@@ -1,11 +1,19 @@
 {
-  "title": "Které země EU nabízejí nejlepší vyhlídky na zaměstnání?",
-  "subtitle": "Budoucí růst zaměstnanosti v těchto zemích v letech 2022-2035 se odhaduje na 5,6 %.",
+  "title": "Které země EU jsou nejžhavější?",
+  "subtitle": "Nárůst teplot oproti předchozímu roku",
   "textNoteDescription": "Poznámka",
-  "textNote": "Velmi kreativní poznámka",
+  "textNote": "toto je testovací poznámka",
   "textSourceDescription": "Zdroj",
-  "textSource": "OECD",
+  "textSource": "Eurostat",
   "linkDataAccessDescription": "Přístup k datům",
-  "extraInfo_DE": "Německo urychluje zavádění obnovitelné energie, do roku 2030 si klade za cíl 80 % čisté energie",
-  "extraInfo_FR": "Francouzský parlament schválil návrh zákona o velké imigrační reformě uprostřed celonárodních protestů"
+  "legend1": "Nejsou k dispozici žádné údaje",
+  "datasetType": "hodnoty",
+  "datasetUnit": "procent",
+  "colourSchemeType": "sekvenční",
+  "colourScheme": "žluto-oranžovo-červená",
+  "linkDataAccess": "jgvsdcjhedj",
+  "legend1Color": "#E0E0E0",
+  "colorBarFirstValue": "20",
+  "colorBarLastValue": "60",
+  "customUnitLabel": "zisk ve stupních Celsia"
 }

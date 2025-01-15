@@ -13,7 +13,6 @@ async function getAllFiles(dir, ignoredFiles) {
 	try {
 		await readFile('package-lock.json', 'utf-8');
 	} catch (error) {
-		// If package-lock.json doesn't exist, create it by running npm install
 		console.log('Generating package-lock.json...');
 		execSync('npm install', { stdio: 'inherit' });
 	}
@@ -25,7 +24,6 @@ async function getAllFiles(dir, ignoredFiles) {
 			const path = join(directory, entry.name);
 			const relativePath = path.replace(process.cwd() + '/', '');
 
-			// Skip .git directory and ignored files, but INCLUDE package-lock.json
 			if (
 				relativePath.startsWith('.git/') ||
 				(ignoredFiles.ignores(relativePath) && relativePath !== 'package-lock.json')
@@ -45,6 +43,29 @@ async function getAllFiles(dir, ignoredFiles) {
 	return files;
 }
 
+// New function to get language files
+async function getLanguageFiles() {
+	const languageFiles = new Map();
+	const languagesDir = join(process.cwd(), 'static', 'languages');
+
+	try {
+		const entries = await readdir(languagesDir, { withFileTypes: true });
+
+		for (const entry of entries) {
+			if (!entry.isDirectory()) {
+				const path = join(languagesDir, entry.name);
+				const content = await readFile(path, 'utf-8');
+				// Set the path relative to the repo root
+				languageFiles.set(`static/languages/${entry.name}`, content);
+			}
+		}
+	} catch (error) {
+		console.error('Error reading language files:', error);
+	}
+
+	return languageFiles;
+}
+
 export async function POST({ request }) {
 	const { repoName, mapConfig } = await request.json();
 
@@ -52,7 +73,6 @@ export async function POST({ request }) {
 		return json({ error: 'GitHub token not configured' }, { status: 500 });
 	}
 
-	// Validate repository name
 	const repoNameRegex = /^[a-zA-Z0-9-_]+$/;
 	if (!repoNameRegex.test(repoName)) {
 		return json(
@@ -82,11 +102,11 @@ export async function POST({ request }) {
 		const octokit = new Octokit({ auth: GITHUB_TOKEN });
 		const { data: user } = await octokit.users.getAuthenticated();
 
-		// Check if template repository exists
+		// Template repository check
 		try {
 			await octokit.repos.get({
-				owner: 'alsino', // Replace with your template repo owner
-				repo: 'map-creation-interface' // Replace with your template repo name
+				owner: 'alsino',
+				repo: 'map-creation-interface'
 			});
 		} catch (error) {
 			return json(
@@ -118,7 +138,7 @@ export async function POST({ request }) {
 			if (error.status !== 404) throw error;
 		}
 
-		// Create repository using template with retry
+		// Create repository using template
 		await retryOperation(async () => {
 			await octokit.repos.createUsingTemplate({
 				template_owner: 'alsino',
@@ -134,7 +154,7 @@ export async function POST({ request }) {
 		// Wait for repository to be ready
 		await new Promise((resolve) => setTimeout(resolve, 2000));
 
-		// Get and update config-map.js with retry
+		// Get and update config-map.js
 		try {
 			const { data: currentFile } = await retryOperation(async () => {
 				return await octokit.repos.getContent({
@@ -160,6 +180,40 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 				});
 			});
 
+			// Get language files and commit them
+			const languageFiles = await getLanguageFiles();
+
+			for (const [path, content] of languageFiles) {
+				try {
+					await retryOperation(async () => {
+						// First try to get existing file (if it exists)
+						let sha;
+						try {
+							const { data: existingFile } = await octokit.repos.getContent({
+								owner: user.login,
+								repo: repoName,
+								path: path
+							});
+							sha = existingFile.sha;
+						} catch (error) {
+							// File doesn't exist yet, that's okay
+						}
+
+						await octokit.repos.createOrUpdateFileContents({
+							owner: user.login,
+							repo: repoName,
+							path: path,
+							message: `Add language file: ${path}`,
+							content: Buffer.from(content).toString('base64'),
+							sha: sha,
+							branch: 'main'
+						});
+					});
+				} catch (error) {
+					console.error(`Failed to commit language file ${path}:`, error);
+				}
+			}
+
 			// Trigger Vercel deployment
 			try {
 				await retryOperation(async () => {
@@ -184,7 +238,7 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 				repoUrl: `https://github.com/${user.login}/${repoName}`
 			});
 		} catch (error) {
-			// If config update fails, delete the repository to maintain consistency
+			// If config update fails, delete the repository
 			try {
 				await octokit.repos.delete({
 					owner: user.login,

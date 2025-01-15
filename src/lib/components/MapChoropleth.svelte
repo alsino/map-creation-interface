@@ -103,8 +103,20 @@
 	let hoveredCountry;
 
 	// Add reactive statement for parsedData
-	$: if (mapConfig.parsedData && countriesAll) {
-		mergeData();
+	// $: if (mapConfig.parsedData && countriesAll) {
+	// 	mergeData();
+	// }
+
+	$: if (countriesAll) {
+		// Only check for countriesAll
+		if (mapConfig.parsedData) {
+			mergeData();
+		} else {
+			// Clear the data when parsedData is null
+			countriesAll.features.forEach((item) => (item.csvImport = null));
+			countriesWithCsvImport = [];
+			countriesWithExtraInfo = { type: 'FeatureCollection', features: [] };
+		}
 	}
 
 	$: if ($CENTER_ON === 'europe') {
@@ -163,6 +175,8 @@
 			scaleMax = max(extentArray);
 		}
 	}
+
+	// $: console.log('mapConfig', mapConfig);
 
 	$: mapConfig.parsedData && mergeData();
 
@@ -434,7 +448,8 @@
 		handleMouseClick(country);
 	};
 
-	// $: console.log('countriesAll', countriesAll);
+	// $: console.log('$MOUSE', $MOUSE);
+	// $: console.log('mapConfig', mapConfig);
 </script>
 
 {#if $dataReady && countriesAll && countriesAll.features}
@@ -447,7 +462,7 @@
 		{/if}
 
 		{#if mapConfig.legendAvailable && mapConfig.parsedData && mapConfig.parsedData.length > 0}
-			<Legend {legend} />
+			<Legend color={mapConfig.legend1Color} label={mapConfig.legend1} />
 		{/if}
 
 		<svg preserveAspectRatio="xMinYMid meet" viewBox="0 0 {width} {height}" class="">
@@ -509,27 +524,25 @@
 		>
 			<div class="tooltip-head font-bold">{$MOUSE.tooltip.name}</div>
 			<div class="tooltip-body space-y-1">
-				{#each tooltip as tip}
-					{#if mapConfig.datasetType == 'values'}
-						<div class="values">
-							{#if mapConfig.datasetUnit == 'percent'}
-								{#if mapConfig.percentRounded == true}
-									<span class="font-bold">{formatInt($MOUSE.tooltip.value * 100)}%</span>
-								{:else if mapConfig.percentRounded == false}
-									<span class="font-bold">{Math.round($MOUSE.tooltip.value * 1000) / 10}%</span>
-								{/if}
-							{:else if mapConfig.datasetUnit == 'fullNumbers'}
-								<span class="font-bold">{$MOUSE.tooltip.value}</span>
+				{#if mapConfig.datasetType == 'values'}
+					<div class="values">
+						{#if mapConfig.datasetUnit == 'percent'}
+							{#if mapConfig.percentRounded == true}
+								<span class="font-bold">{formatInt($MOUSE.tooltip.value * 100)}%</span>
+							{:else if mapConfig.percentRounded == false}
+								<span class="font-bold">{Math.round($MOUSE.tooltip.value * 1000) / 10}%</span>
 							{/if}
-							{#if mapConfig.customUnitLabelAvailable && mapConfig.customUnitLabel !== ''}
-								<span>{mapConfig.customUnitLabel}</span>
-							{/if}
-						</div>
-					{/if}
-					{#if $MOUSE.tooltip.extraInfo == true}
-						<div class="text-xs"><span class="icon-tap" />{tooltip[0].textCountryClick}</div>
-					{/if}
-				{/each}
+						{:else if mapConfig.datasetUnit == 'fullNumbers'}
+							<span class="font-bold">{$MOUSE.tooltip.value}</span>
+						{/if}
+						{#if mapConfig.customUnitLabelAvailable && mapConfig.customUnitLabel !== ''}
+							<span>{mapConfig.customUnitLabel}</span>
+						{/if}
+					</div>
+				{/if}
+				{#if $MOUSE.tooltip.extraInfo == true}
+					<div class="text-xs"><span class="icon-tap" />{tooltip[0].textCountryClick}</div>
+				{/if}
 			</div>
 		</div>
 	</div>

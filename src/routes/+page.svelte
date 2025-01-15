@@ -43,7 +43,7 @@
 	});
 </script>
 
-<div bind:this={containerRef} class="flex w-full">
+<div bind:this={containerRef} class="flex h-screen w-full">
 	{#if !isFullscreen}
 		<div class="w-1/2 space-y-4 overflow-y-auto bg-gray-50 p-4">
 			<ControlPanel />

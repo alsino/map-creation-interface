@@ -1,11 +1,19 @@
 {
-  "title": "Mely uniós országok kínálják a legjobb foglalkoztatási kilátásokat?",
-  "subtitle": "A foglalkoztatás jövőbeni növekedése ezekben az országokban 2022 és 2035 között 5,6%.",
+  "title": "Mely EU-országok a legmelegebbek?",
+  "subtitle": "A hőmérséklet növekedése az előző évhez képest",
   "textNoteDescription": "Jegyzet",
-  "textNote": "Nagyon kreatív megjegyzés",
+  "textNote": "ez egy teszt megjegyzés",
   "textSourceDescription": "Forrás",
-  "textSource": "OECD",
+  "textSource": "eurostat",
   "linkDataAccessDescription": "Hozzáférés az adatokhoz",
-  "extraInfo_DE": "Németország felgyorsítja a megújuló energia elterjedését, és 2030-ra a 80%-os tiszta energia elérését tűzi ki célul",
-  "extraInfo_FR": "A francia parlament országos tiltakozások közepette jóváhagyta a jelentős bevándorlási reformról szóló törvényjavaslatot"
+  "legend1": "Nincs adat",
+  "datasetType": "értékeket",
+  "datasetUnit": "százalékos",
+  "colourSchemeType": "egymás utáni",
+  "colourScheme": "sárga-narancs-piros",
+  "linkDataAccess": "jgvsdcjhedj",
+  "legend1Color": "#E0E0E0",
+  "colorBarFirstValue": "20",
+  "colorBarLastValue": "60",
+  "customUnitLabel": "nyereség Celsius fokban"
 }
