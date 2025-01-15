@@ -1,7 +1,10 @@
 <script>
 	export let selectedCountry;
-	export let countryText;
 	export let countryLink;
+	export let mapConfig;
+
+	$: countryID = selectedCountry.properties.id;
+	$: countryText = mapConfig.translate[`extraInfo_${countryID}`];
 
 	// Filter csvImport for audio pieces
 	$: asArray = Object.entries(selectedCountry.csvImport);

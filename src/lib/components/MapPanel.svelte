@@ -77,7 +77,7 @@
 		await getLanguage($selectedLanguage.value);
 	});
 
-	// Function called when lannguage dropdownn is changed
+	// Function called when language dropdownn is changed
 	async function getLanguage(lang) {
 		try {
 			shouldUpdateMap.set(false); // Prevent ControlPanel updates
@@ -88,6 +88,9 @@
 			}
 
 			const data = await response.json();
+
+			// First, find all keys in data that start with 'extraInfo_'
+			const extraInfoEntries = Object.keys(data).filter((key) => key.startsWith('extraInfo_'));
 
 			// Update your local variables
 			heading = data.title;
@@ -110,6 +113,7 @@
 				linkDataAccessDescription: data.linkDataAccessDescription,
 				legend1: data.legend1,
 				customUnitLabel: data.customUnitLabel,
+				...Object.fromEntries(extraInfoEntries.map((key) => [key, data[key]])), // include extrainfo keys, e.g. extraInfo_DE or extraInfo_FR
 				translate: {
 					title: data.title,
 					subtitle: data.subtitle,
@@ -118,7 +122,8 @@
 					textSourceDescription: data.textSourceDescription,
 					textSource: data.textSource,
 					linkDataAccessDescription: data.linkDataAccessDescription,
-					legend1: data.legend1
+					legend1: data.legend1,
+					...Object.fromEntries(extraInfoEntries.map((key) => [key, data[key]]))
 				}
 			});
 

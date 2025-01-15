@@ -33,7 +33,7 @@
 	$: countryUnit = mapConfig.datasetUnit == 'percent' ? '%' : '';
 	$: countryLabel = tooltip && tooltip[0] ? tooltip[0].label : '';
 
-	$: console.log('mapConfig', mapConfig);
+	// $: console.log('mapConfig', mapConfig);
 </script>
 
 {#if $countryInfoVisible}
@@ -63,7 +63,7 @@
 			{/if}
 		</div>
 
-		<CountryMediaComponent {selectedCountry} {countryText} {countryLink} />
+		<CountryMediaComponent {selectedCountry} {countryLink} {mapConfig} />
 	</div>
 {/if}
 
