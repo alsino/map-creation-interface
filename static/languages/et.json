@@ -1,12 +1,12 @@
 {
   "title": "Millised ELi riigid pakuvad parimaid töövõimalusi?",
   "subtitle": "Nendes riikides on edaspidine tööhõive kasv aastatel 2022–2035 hinnanguliselt 5,6%.",
-  "textNoteDescription": "tähele",
-  "textSourceDescription": "Need",
+  "textNoteDescription": "Märkus",
+  "textSourceDescription": "Allikas",
   "linkDataAccessDescription": "Juurdepääs andmetele",
+  "extraInfo_DE": "Saksamaa kiirendab taastuvenergia kasutuselevõttu, seab eesmärgiks 80% puhta energia kasutamise aastaks 2030",
+  "extraInfo_FR": "Prantsusmaa parlament kiitis üleriigiliste protestide taustal heaks immigratsioonireformi seaduse eelnõu",
   "legend1": "Andmed puuduvad",
-  "tooltipExtraInfoLabel": "Klõpsake siin",
-  "extraInfo_DE": "Saksamaa kiirendab taastuvenergia laienemist ja seab eesmärgiks saavutada 2030. aastaks 80% puhta elektri osakaal",
-  "extraInfo_FR": "Prantsusmaa parlament võttis üleriigiliste protestide taustal vastu ulatusliku immigratsioonireformi seaduseelnõu",
-  "customUnitLabel": "piiripunktid"
+  "customUnitLabel": "SKTd",
+  "tooltipExtraInfoLabel": "Klõpsake siin"
 }

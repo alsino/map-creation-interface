@@ -1,12 +1,12 @@
 {
-  "title": "Kurios ES šalys siūlo geriausias darbo perspektyvas?",
-  "subtitle": "Apskaičiuota, kad užimtumo augimas šiose šalyse 2022–2035 m. sieks 5,6 proc.",
-  "textNoteDescription": "pastaba",
-  "textSourceDescription": "Tie",
-  "linkDataAccessDescription": "Prieiga prie duomenų",
+  "title": "Kurios ES šalys siūlo geriausias įsidarbinimo perspektyvas?",
+  "subtitle": "Skaičiuojama, kad būsimas užimtumo augimas šiose šalyse 2022–2035 m. sieks 5,6 proc.",
+  "textNoteDescription": "Pastaba",
+  "textSourceDescription": "Šaltinis",
+  "linkDataAccessDescription": "Pasiekite duomenis",
+  "extraInfo_DE": "Vokietija paspartina atsinaujinančios energijos diegimą ir siekia 80 % švarios energijos iki 2030 m.",
+  "extraInfo_FR": "Prancūzijos parlamentas, kilus protestams visoje šalyje, patvirtino pagrindinį imigracijos reformos įstatymo projektą",
   "legend1": "Nėra duomenų",
-  "tooltipExtraInfoLabel": "Spauskite čia",
-  "extraInfo_DE": "Vokietija spartina atsinaujinančios energijos plėtrą ir siekia, kad iki 2030 m. 80 proc.",
-  "extraInfo_FR": "Prancūzijos parlamentas priėmė platų imigracijos reformos įstatymą, vykstant protestams visoje šalyje",
-  "customUnitLabel": "BIP"
+  "customUnitLabel": "BVP",
+  "tooltipExtraInfoLabel": "Spauskite čia"
 }

@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { VERCEL_TOKEN, GITHUB_TOKEN, GITHUB_USERNAME } from '$env/static/private';
+import { MY_VERCEL_TOKEN, GITHUB_TOKEN, GITHUB_USERNAME } from '$env/static/private';
 import { Octokit } from '@octokit/rest';
 
 // Helper function to wait for repo to be available
@@ -24,12 +24,12 @@ async function waitForRepo(octokit, owner, repo, maxAttempts = 5) {
 
 export async function POST({ request }) {
 	// Validate environment variables
-	if (!VERCEL_TOKEN || !GITHUB_TOKEN || !GITHUB_USERNAME) {
+	if (!MY_VERCEL_TOKEN || !GITHUB_TOKEN || !GITHUB_USERNAME) {
 		console.error('Missing environment variables');
 		return json(
 			{
 				error: 'Missing required environment variables',
-				details: 'Please check VERCEL_TOKEN, GITHUB_TOKEN, and GITHUB_USERNAME'
+				details: 'Please check MY_VERCEL_TOKEN, GITHUB_TOKEN, and GITHUB_USERNAME'
 			},
 			{ status: 500 }
 		);
@@ -66,7 +66,7 @@ export async function POST({ request }) {
 		const projectResponse = await fetch('https://api.vercel.com/v9/projects', {
 			method: 'POST',
 			headers: {
-				Authorization: `Bearer ${VERCEL_TOKEN}`,
+				Authorization: `Bearer ${MY_VERCEL_TOKEN}`,
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
@@ -95,7 +95,7 @@ export async function POST({ request }) {
 					},
 					{
 						key: 'VERCEL_TOKEN',
-						value: VERCEL_TOKEN,
+						value: MY_VERCEL_TOKEN,
 						type: 'encrypted',
 						target: ['production', 'preview', 'development']
 					}
@@ -116,7 +116,7 @@ export async function POST({ request }) {
 				`https://api.vercel.com/v9/projects/${projectData.id}/domains`,
 				{
 					headers: {
-						Authorization: `Bearer ${VERCEL_TOKEN}`,
+						Authorization: `Bearer ${MY_VERCEL_TOKEN}`,
 						'Content-Type': 'application/json'
 					}
 				}
@@ -140,7 +140,7 @@ export async function POST({ request }) {
 		const deployResponse = await fetch('https://api.vercel.com/v13/deployments', {
 			method: 'POST',
 			headers: {
-				Authorization: `Bearer ${VERCEL_TOKEN}`,
+				Authorization: `Bearer ${MY_VERCEL_TOKEN}`,
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({

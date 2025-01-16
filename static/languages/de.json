@@ -2,11 +2,11 @@
   "title": "Welche EU-Länder bieten die besten Beschäftigungsaussichten?",
   "subtitle": "Das künftige Beschäftigungswachstum in diesen Ländern im Zeitraum 2022–2035 wird auf 5,6 % geschätzt.",
   "textNoteDescription": "Notiz",
-  "textSourceDescription": "Diese",
+  "textSourceDescription": "Quelle",
   "linkDataAccessDescription": "Zugriff auf die Daten",
-  "legend1": "Keine Daten verfügbar",
-  "tooltipExtraInfoLabel": "klicken Sie hier",
   "extraInfo_DE": "Deutschland beschleunigt Ausbau erneuerbarer Energien und strebt bis 2030 80 % sauberen Stromanteil an",
   "extraInfo_FR": "Französisches Parlament verabschiedet inmitten landesweiter Proteste ein umfassendes Gesetz zur Einwanderungsreform",
-  "customUnitLabel": "BIPs"
+  "legend1": "Keine Daten verfügbar",
+  "customUnitLabel": "BIP",
+  "tooltipExtraInfoLabel": "klicken Sie hier"
 }

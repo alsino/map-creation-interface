@@ -1,12 +1,12 @@
 {
   "title": "Koje zemlje EU-a nude najbolje izglede za zapošljavanje?",
-  "subtitle": "Budući rast zaposlenosti u tim zemljama u razdoblju od 2022. do 2035. procjenjuje se na 5,6%.",
-  "textNoteDescription": "bilješka",
-  "textSourceDescription": "one",
-  "linkDataAccessDescription": "Pristup podacima",
+  "subtitle": "Budući rast zaposlenosti u tim zemljama u razdoblju 2022. – 2035. procjenjuje se na 5,6%.",
+  "textNoteDescription": "Bilješka",
+  "textSourceDescription": "Izvor",
+  "linkDataAccessDescription": "Pristupite podacima",
+  "extraInfo_DE": "Njemačka ubrzava uvođenje obnovljive energije, cilj je 80% čiste energije do 2030.",
+  "extraInfo_FR": "Francuski parlament odobrio veliki nacrt zakona o useljeničkoj reformi usred prosvjeda diljem zemlje",
   "legend1": "Nema dostupnih podataka",
-  "tooltipExtraInfoLabel": "Kliknite ovdje",
-  "extraInfo_DE": "Njemačka ubrzava širenje obnovljivih izvora energije i cilja na 80% udjela čiste električne energije do 2030.",
-  "extraInfo_FR": "Francuski parlament usvojio je sveobuhvatnu imigracijsku reformu u jeku prosvjeda širom zemlje",
-  "customUnitLabel": "BIP-ovi"
+  "customUnitLabel": "BDP-a",
+  "tooltipExtraInfoLabel": "Kliknite ovdje"
 }

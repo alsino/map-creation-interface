@@ -1,12 +1,12 @@
 {
-  "title": "Quais são os países da UE que oferecem as melhores perspetivas de emprego?",
-  "subtitle": "O crescimento futuro do emprego nestes países durante o período 2022-2035 é estimado em 5,6%.",
-  "textNoteDescription": "observação",
-  "textSourceDescription": "Aqueles",
-  "linkDataAccessDescription": "Acesso aos dados",
+  "title": "Quais países da UE oferecem as melhores perspectivas de emprego?",
+  "subtitle": "O crescimento futuro do emprego nesses países entre 2022 e 2035 é estimado em 5,6%.",
+  "textNoteDescription": "Observação",
+  "textSourceDescription": "Fonte",
+  "linkDataAccessDescription": "Acesse os dados",
+  "extraInfo_DE": "Alemanha acelera implementação de energia renovável e tem como meta 80% de energia limpa até 2030",
+  "extraInfo_FR": "Parlamento francês aprova importante projeto de lei de reforma da imigração em meio a protestos em todo o país",
   "legend1": "Não há dados disponíveis",
-  "tooltipExtraInfoLabel": "Clique aqui",
-  "extraInfo_DE": "A Alemanha está a acelerar a expansão das energias renováveis e pretende alcançar uma quota de eletricidade limpa de 80% até 2030",
-  "extraInfo_FR": "Parlamento francês aprova projeto de reforma abrangente da imigração em meio a protestos em todo o país",
-  "customUnitLabel": "BIPs"
+  "customUnitLabel": "PIB",
+  "tooltipExtraInfoLabel": "Clique aqui"
 }
