@@ -93,6 +93,12 @@ export async function POST({ request }) {
 						value: GITHUB_USERNAME,
 						type: 'plain',
 						target: ['production', 'preview', 'development']
+					},
+					{
+						key: 'DEPLOY_VERCEL_TOKEN', // Different name for deployed projects
+						value: VERCEL_TOKEN, // But using our main token's value
+						type: 'encrypted',
+						target: ['production', 'preview', 'development']
 					}
 				]
 			})
