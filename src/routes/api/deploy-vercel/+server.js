@@ -93,7 +93,7 @@ export async function POST({ request }) {
 		const projectResponse = await fetch('https://api.vercel.com/v9/projects', {
 			method: 'POST',
 			headers: {
-				Authorization: `Bearer ${VERCEL_TOKEN}`,
+				Authorization: `Bearer ${token}`,
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
