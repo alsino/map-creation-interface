@@ -111,7 +111,7 @@ export async function POST({ request }) {
 				`https://api.vercel.com/v9/projects/${projectData.id}/domains`,
 				{
 					headers: {
-						Authorization: `Bearer ${VERCEL_API_TOKEN}`,
+						Authorization: `Bearer ${VERCEL_TOKEN}`,
 						'Content-Type': 'application/json'
 					}
 				}
@@ -135,7 +135,7 @@ export async function POST({ request }) {
 		const deployResponse = await fetch('https://api.vercel.com/v13/deployments', {
 			method: 'POST',
 			headers: {
-				Authorization: `Bearer ${VERCEL_API_TOKEN}`,
+				Authorization: `Bearer ${VERCEL_TOKEN}`,
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
