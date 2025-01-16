@@ -1,6 +1,7 @@
 <!-- src/lib/components/ControlPanel.svelte -->
 <script>
-	import { mapConfig, shouldUpdateMap } from '$lib/stores/config-map';
+	import { mapConfig } from '$lib/stores/config-map';
+	import { shouldUpdateMap } from '$lib/stores/update-map';
 	import { dataReady } from '$lib/stores/shared';
 	import { csvParse } from 'd3-dsv';
 	import { writable } from 'svelte/store';

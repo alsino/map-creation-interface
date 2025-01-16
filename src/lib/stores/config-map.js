@@ -35,5 +35,3 @@ export const mapConfig = writable({
 	customUnitLabelAvailable: false,
 	customUnitLabel: undefined
 });
-
-export const shouldUpdateMap = writable(true);
