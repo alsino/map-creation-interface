@@ -4,6 +4,8 @@
 	export let countryLink;
 	export let mapConfig;
 
+	$: console.log('countryLink', countryLink);
+
 	// Computed values
 	$: countryID = selectedCountry.properties.id;
 	$: countryText = mapConfig.translate[`extraInfo_${countryID}`];
