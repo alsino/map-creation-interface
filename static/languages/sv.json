@@ -1,5 +1,5 @@
 {
-  "title": "Vilka EU-länder erbjuder de bästa sysselsättningsmöjligheterna?",
+  "title": "Vilka EU-länder har de bästa sysselsättningsmöjligheterna?",
   "subtitle": "Framtida sysselsättningstillväxt i dessa länder 2022-2035 beräknas till 5,6 %.",
   "textNoteDescription": "Notera",
   "textSourceDescription": "Källa",
@@ -7,6 +7,6 @@
   "extraInfo_DE": "Tyskland accelererar utbyggnaden av förnybar energi, siktar på 80 % ren kraft till 2030",
   "extraInfo_FR": "Det franska parlamentet godkänner lagförslaget om stora invandringsreformer under rikstäckande protester",
   "legend1": "Inga data tillgängliga",
-  "customUnitLabel": "BNP",
+  "customUnitLabel": "av människor",
   "tooltipExtraInfoLabel": "Klicka här"
 }
