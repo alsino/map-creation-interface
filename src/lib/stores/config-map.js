@@ -29,6 +29,7 @@ export const mapConfig = writable({
 	linkDataAccess: '',
 	legend1: 'No data available',
 	legend1Color: '#E0E0E0',
+	tooltipExtraInfoLabel: '',
 	parsedData: null,
 	data: ``,
 	customUnitLabelAvailable: false,

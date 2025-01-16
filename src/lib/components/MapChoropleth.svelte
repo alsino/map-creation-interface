@@ -542,7 +542,7 @@
 					</div>
 				{/if}
 				{#if $MOUSE.tooltip.extraInfo == true}
-					<!-- <div class="text-xs"><span class="icon-tap" />{tooltip[0].textCountryClick}</div> -->
+					<div class="text-xs"><span class="icon-tap" />{mapConfig.tooltipExtraInfoLabel}</div>
 				{/if}
 			</div>
 		</div>

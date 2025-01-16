@@ -24,6 +24,8 @@
 	let textNoteDescription;
 	let textNote;
 	let customUnitLabel;
+	let tooltipExtraInfoLabel;
+
 	let textCountryClick;
 	let extraInfoTexts;
 	let extraInfoLinks;
@@ -31,10 +33,6 @@
 	let containerHeight;
 
 	let transformedGeoData;
-
-	// $: {
-	// 	console.log($mapConfig);
-	// }
 
 	async function fetchAndTransformGeoData() {
 		const res = await fetch('/data/geodata/europe-20m.json');
@@ -89,6 +87,12 @@
 
 			const data = await response.json();
 
+			// Capitalize tooltipExtraInfoLabel if it exists
+			if (data.tooltipExtraInfoLabel) {
+				data.tooltipExtraInfoLabel =
+					data.tooltipExtraInfoLabel.charAt(0).toUpperCase() + data.tooltipExtraInfoLabel.slice(1);
+			}
+
 			// First, find all keys in data that start with 'extraInfo_'
 			const extraInfoEntries = Object.keys(data).filter((key) => key.startsWith('extraInfo_'));
 
@@ -101,6 +105,7 @@
 			textNote = data.textNote;
 			linkDataAccessDescription = data.linkDataAccessDescription;
 			customUnitLabel = data.customUnitLabel;
+			tooltipExtraInfoLabel = data.tooltipExtraInfoLabel;
 
 			mapConfig.set({
 				...$mapConfig, // Spread all existing properties
@@ -113,6 +118,7 @@
 				linkDataAccessDescription: data.linkDataAccessDescription,
 				legend1: data.legend1,
 				customUnitLabel: data.customUnitLabel,
+				tooltipExtraInfoLabel: data.tooltipExtraInfoLabel,
 				...Object.fromEntries(extraInfoEntries.map((key) => [key, data[key]])), // include extrainfo keys, e.g. extraInfo_DE or extraInfo_FR
 				translate: {
 					title: data.title,
@@ -123,6 +129,7 @@
 					textSource: data.textSource,
 					linkDataAccessDescription: data.linkDataAccessDescription,
 					legend1: data.legend1,
+					tooltipExtraInfoLabel: data.tooltipExtraInfoLabel,
 					...Object.fromEntries(extraInfoEntries.map((key) => [key, data[key]]))
 				}
 			});

@@ -1,11 +1,12 @@
 {
   "title": "Cé na tíortha san AE a thairgeann na hionchais fostaíochta is fearr?",
-  "subtitle": "Meastar gur 5.6% an fás fostaíochta amach anseo sna tíortha seo in 2022-2035.",
-  "textNoteDescription": "Nóta",
-  "textSourceDescription": "Foinse",
-  "linkDataAccessDescription": "Faigh rochtain ar na sonraí",
-  "extraInfo_DE": "Luathaíonn an Ghearmáin Rolladh Amach Fuinnimh In-athnuaite, Dírítear 80% ar Chumhacht Ghlan faoi 2030",
-  "extraInfo_FR": "Formheasann Parlaimint na Fraince Bille um Athchóiriú an Mhór-Imirce i measc Agóidí ar fud na tíre",
+  "subtitle": "Meastar gur 5.6% an fás fostaíochta amach anseo sna tíortha seo thar an tréimhse 2022-2035.",
+  "textNoteDescription": "nóta",
+  "textSourceDescription": "Iad siúd",
+  "linkDataAccessDescription": "Rochtain ar na sonraí",
   "legend1": "Níl aon sonraí ar fáil",
-  "customUnitLabel": "dcgdcgdgc"
+  "tooltipExtraInfoLabel": "Cliceáil anseo",
+  "extraInfo_DE": "Tá an Ghearmáin ag luasghéarú ar fhairsingiú fuinnimh in-athnuaite agus tá sé mar aidhm aici sciar de 80% de leictreachas glan a bhaint amach faoi 2030",
+  "extraInfo_FR": "Gabhann Parlaimint na Fraince bille athchóirithe inimirce scuabtha i measc agóidí ar fud na tíre",
+  "customUnitLabel": "BIPs"
 }

@@ -51,13 +51,13 @@ Belgium,BE,0.083,FALSE,,,,,,,,,
 Bulgaria,BG,-0.108,FALSE,,,,,,,,,
 Cyprus,CY,0.157,FALSE,,,,,,,,,
 Czechia,CZ,-0.002,FALSE,,,,,,,,,
-Germany,DE,-0.040,true,"Germany Accelerates Renewable Energy Rollout, Targets 80% Clean Power by 2030",Read more,,,,,,,
+Germany,DE,-0.040,true,"Germany Accelerates Renewable Energy Rollout, Targets 80% Clean Power by 2030",Read more,https://www.nytimes.com/2025/01/15/us/politics/trump-biden-gaza-ceasefire.html,https://open.spotify.com/embed/episode/37AK0KI06D6027Pwv96Bvk?utm_source=generator,,,https://euranetplus-inside.eu/wp-content/uploads/2022/05/2-kuku.png,https://www.100komma7.lu/article/aktualiteit/49-propose-mat-326-mesuren-fir-eng-besser-eu,https://www.youtube.com/embed/asWW2pvhaJQ
 Denmark,DK,0.036,FALSE,,,,,,,,,
 Estonia,EE,0.047,FALSE,,,,,,,,,
 Greece,EL,0.006,FALSE,,,,,,,,,
 Spain,ES,0.132,FALSE,,,,,,,,,
 Finland,FI,0.069,FALSE,,,,,,,,,
-France,FR,0.045,true,"French Parliament Approves Major Immigration Reform Bill Amid Nationwide Protests",,,,,,,,
+France,FR,0.045,true,French Parliament Approves Major Immigration Reform Bill Amid Nationwide Protests,Link to article,,,,,,,
 Croatia,HR,0.000,FALSE,,,,,,,,,
 Hungary,HU,-0.019,FALSE,,,,,,,,,
 Ireland,IE,0.243,FALSE,,,,,,,,,
@@ -143,6 +143,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 	let parsedData = $mapConfig.parsedData;
 	let customUnitLabelAvailable = $mapConfig.customUnitLabelAvailable;
 	let customUnitLabel = $mapConfig.customUnitLabel;
+	let tooltipExtraInfoLabel = $mapConfig.tooltipExtraInfoLabel;
 
 	$: configObject =
 		$shouldUpdateMap && $shouldInitialize
@@ -180,6 +181,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 					colorBarLastValue: colorBarLastValue,
 					customUnitLabelAvailable: customUnitLabelAvailable,
 					customUnitLabel: customUnitLabel,
+					tooltipExtraInfoLabel: tooltipExtraInfoLabel,
 					translate: {
 						title,
 						subtitle,
@@ -189,6 +191,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 						textSource,
 						linkDataAccessDescription,
 						legend1,
+						tooltipExtraInfoLabel,
 						customUnitLabel,
 						...$mapConfig.parsedData?.reduce((acc, country) => {
 							if (country.text_content) {
@@ -201,8 +204,12 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 			: null;
 
 	$: if (configObject !== null) {
+		console.log('configObject before store update:', configObject);
+
 		mapConfig.set(configObject);
-		// console.log('mapConfig', $mapConfig);
+		console.log('mapConfig after update:', $mapConfig);
+
+		// console.log('mapConfig-start', $mapConfig);
 		shouldInitialize.set(false);
 	}
 
@@ -354,14 +361,14 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 		translatedLanguages = [];
 
 		try {
-			// Create translation object with all required additional fields to translate
 			const translateData = {
 				...$mapConfig.translate,
-				legend1: $mapConfig.legend1, // Explicitly include legend1 from mapConfig
-				customUnitLabel: $mapConfig.customUnitLabel // Explicitly include customUnitLabel from mapConfig
+				legend1: $mapConfig.legend1,
+				customUnitLabel: $mapConfig.customUnitLabel,
+				tooltipExtraInfoLabel: 'Click here' // Use static value
 			};
 
-			console.log('translateData', translateData);
+			console.log('Translation data being sent:', translateData); // Add this log
 
 			const response = await fetch('/api/translate', {
 				method: 'POST',

@@ -1,11 +1,12 @@
 {
   "title": "Which EU countries offer the best employment prospects?",
-  "subtitle": "Future employment growth in these countries in 2022-2035 is estimated at 5.6%.",
-  "textNoteDescription": "Note",
-  "textSourceDescription": "Source",
-  "linkDataAccessDescription": "Access the data",
-  "extraInfo_DE": "Germany Accelerates Renewable Energy Rollout, Targets 80% Clean Power by 2030",
-  "extraInfo_FR": "French Parliament Approves Major Immigration Reform Bill Amid Nationwide Protests",
+  "subtitle": "Future employment growth in these countries between 2022 and 2035 is estimated at 5.6%.",
+  "textNoteDescription": "note",
+  "textSourceDescription": "Those",
+  "linkDataAccessDescription": "access to the data",
   "legend1": "No data available",
-  "customUnitLabel": "dcgdcgdgc"
+  "tooltipExtraInfoLabel": "Click here",
+  "extraInfo_DE": "Germany accelerates expansion of renewable energies and aims to achieve 80% clean electricity share by 2030",
+  "extraInfo_FR": "French parliament passes comprehensive immigration reform law amid nationwide protests",
+  "customUnitLabel": "BIPs"
 }

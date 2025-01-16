@@ -1,11 +1,12 @@
 {
   "title": "Mitkä EU-maat tarjoavat parhaat työllisyysnäkymät?",
-  "subtitle": "Näissä maissa tulevaisuudessa työllisyyden kasvuksi 2022-2035 arvioidaan 5,6 %.",
-  "textNoteDescription": "Huom",
-  "textSourceDescription": "Lähde",
-  "linkDataAccessDescription": "Käytä tietoja",
-  "extraInfo_DE": "Saksa nopeuttaa uusiutuvan energian käyttöönottoa ja tavoittelee 80 % puhdasta sähköä vuoteen 2030 mennessä",
-  "extraInfo_FR": "Ranskan parlamentti hyväksyi suuren maahanmuuttouudistuksen valtakunnallisten mielenosoitusten keskellä",
+  "subtitle": "Näissä maissa tulevan työllisyyden kasvun vuosille 2022-2035 arvioidaan 5,6 %.",
+  "textNoteDescription": "huomautus",
+  "textSourceDescription": "Ne",
+  "linkDataAccessDescription": "Pääsy tietoihin",
   "legend1": "Tietoja ei ole saatavilla",
-  "customUnitLabel": "dcgdcgdgc"
+  "tooltipExtraInfoLabel": "Klikkaa tästä",
+  "extraInfo_DE": "Saksa vauhdittaa uusiutuvien energialähteiden leviämistä ja tavoittelee 80 prosentin puhtaan sähkön osuutta vuoteen 2030 mennessä",
+  "extraInfo_FR": "Ranskan parlamentti hyväksyi laajan maahanmuuttouudistuksen valtakunnallisten mielenosoitusten keskellä",
+  "customUnitLabel": "BIP:t"
 }

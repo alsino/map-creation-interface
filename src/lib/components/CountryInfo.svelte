@@ -1,65 +1,55 @@
 <script>
 	import { fly } from 'svelte/transition';
-	import { countryInfoVisible } from '$lib/stores/shared';
+	import { countryInfoVisible, MOUSE, APP_HEIGHT } from '$lib/stores/shared';
 	import CountryMediaComponent from './CountryMediaComponent.svelte';
-	import { MOUSE } from '$lib/stores/shared';
-	import { APP_HEIGHT, mobileSize, isMobile } from '$lib/stores/shared';
+	import { formatOneDecimal } from '$lib/utils/formatNumbers';
 
-	import { formatInt } from '$lib/utils/formatNumbers';
-
+	// Props
 	export let selectedCountry;
 	export let countryName;
-	export let countryText;
 	export let countryLink;
-	export let tooltip = [{ label: '' }];
 	export let mapConfig;
 
-	let width, height;
-	let countryValue;
-	let duration = 1000;
+	// Local state
+	const ANIMATION_DURATION = 1000;
 
-	// $: infoBoxPositionX = $MOUSE.x < $MAP_WIDTH / 2 ? $MOUSE.x : $MOUSE.x - width;
+	// Computed values
+	$: countryValue = selectedCountry && calculateCountryValue(selectedCountry, mapConfig);
+	$: countryUnit = mapConfig.datasetUnit === 'percent' ? '%' : '';
 
-	// $: countryValue =
-	// 	config.datasetUnit == 'percent' ? formatInt($MOUSE.tooltip.value * 100) : $MOUSE.tooltip.value;
-	$: if (selectedCountry) {
-		countryValue =
-			mapConfig.datasetUnit == 'percent'
-				? formatInt(selectedCountry.csvImport.value * 100)
-				: selectedCountry.csvImport.value;
-		// console.log(countryValue)
+	// Helper functions
+	function calculateCountryValue(country, config) {
+		if (!country) return null;
+
+		const value = country.csvImport.value;
+		return config.datasetUnit === 'percent' ? formatOneDecimal(value * 100) : value;
 	}
 
-	$: countryUnit = mapConfig.datasetUnit == 'percent' ? '%' : '';
-	$: countryLabel = tooltip && tooltip[0] ? tooltip[0].label : '';
-
-	// $: console.log('mapConfig', mapConfig);
+	function handleClose() {
+		$countryInfoVisible = false;
+	}
 </script>
 
 {#if $countryInfoVisible}
 	<div
-		class="country-info absolute overflow-auto rounded border bg-white p-5 text-sm shadow-xl"
-		bind:clientWidth={width}
-		bind:clientHeight={height}
-		in:fly={{ y: $APP_HEIGHT / 2, duration: duration, opacity: 1 }}
-		out:fly={{ y: $APP_HEIGHT / 2, duration: duration, opacity: 1 }}
+		class="country-info"
+		in:fly={{ y: $APP_HEIGHT / 2, duration: ANIMATION_DURATION, opacity: 1 }}
+		out:fly={{ y: $APP_HEIGHT / 2, duration: ANIMATION_DURATION / 3, opacity: 1 }}
 	>
-		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore element_invalid_self_closing_tag -->
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
-			class="icon-close static cursor-pointer text-right transition-all"
-			on:click={() => {
-				$countryInfoVisible = false;
-			}}
+			class="icon-close"
+			on:click={handleClose}
+			on:keydown={(e) => e.key === 'Enter' && handleClose()}
+			role="button"
+			tabindex="0"
 		/>
-		<div class="border-b pb-2">
+
+		<div class="country-header">
 			<span class="font-bold">{countryName}</span>
-			{#if mapConfig.datasetType == 'values'}
-				{#if $MOUSE.tooltip.value}
-					<span>–</span>
-					<span class="font-bold">{countryValue}{countryUnit}</span> <span>{countryLabel}</span>
-				{/if}
+			{#if mapConfig.datasetType === 'values' && $MOUSE.tooltip.value}
+				<span>–</span>
+				<span class="font-bold">{countryValue}{countryUnit}</span>
 			{/if}
 		</div>
 
@@ -69,13 +59,19 @@
 
 <style>
 	.country-info {
+		@apply absolute overflow-auto rounded border bg-white p-5 text-sm shadow-xl;
 		width: 100%;
 		max-height: 50%;
 		z-index: 1;
 		bottom: 0;
 	}
 
+	.country-header {
+		@apply border-b pb-2;
+	}
+
 	.icon-close {
+		@apply static cursor-pointer text-right;
 		transition: all 0.2s;
 	}
 

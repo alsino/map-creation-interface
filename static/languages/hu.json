@@ -1,11 +1,12 @@
 {
-  "title": "Mely uniós országok kínálják a legjobb foglalkoztatási kilátásokat?",
-  "subtitle": "A foglalkoztatás jövőbeni növekedése ezekben az országokban 2022 és 2035 között 5,6%-ra becsülhető.",
-  "textNoteDescription": "Jegyzet",
-  "textSourceDescription": "Forrás",
+  "title": "Mely uniós országok kínálják a legjobb munkalehetőségeket?",
+  "subtitle": "A foglalkoztatás jövőbeni növekedését ezekben az országokban a 2022-2035 közötti időszakban 5,6%-ra becsülik.",
+  "textNoteDescription": "jegyzet",
+  "textSourceDescription": "Azok",
   "linkDataAccessDescription": "Hozzáférés az adatokhoz",
-  "extraInfo_DE": "Németország felgyorsítja a megújuló energia elterjedését, és 2030-ra a 80%-os tiszta energia elérését tűzi ki célul",
-  "extraInfo_FR": "A francia parlament országos tiltakozások közepette jóváhagyta a jelentős bevándorlási reformról szóló törvényjavaslatot",
   "legend1": "Nincs adat",
-  "customUnitLabel": "dcgdcgdgc"
+  "tooltipExtraInfoLabel": "Kattintson ide",
+  "extraInfo_DE": "Németország felgyorsítja a megújuló energiaforrások terjeszkedését, és 2030-ra a tiszta villamos energia 80%-os részesedésére törekszik",
+  "extraInfo_FR": "A francia parlament az országos tiltakozások közepette fogadta el a bevándorlási reformról szóló átfogó törvényjavaslatot",
+  "customUnitLabel": "BIP-ek"
 }

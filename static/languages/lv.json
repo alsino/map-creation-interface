@@ -1,11 +1,12 @@
 {
-  "title": "Kuras ES valstis piedāvā vislabākās nodarbinātības iespējas?",
-  "subtitle": "Nākotnes nodarbinātības pieaugums šajās valstīs 2022.-2035.gadā tiek lēsts 5,6% apmērā.",
-  "textNoteDescription": "Piezīme",
-  "textSourceDescription": "Avots",
-  "linkDataAccessDescription": "Piekļūstiet datiem",
-  "extraInfo_DE": "Vācija paātrina atjaunojamās enerģijas ieviešanu, paredz 80% tīras enerģijas līdz 2030. gadam",
-  "extraInfo_FR": "Francijas parlaments valsts mēroga protestu laikā apstiprina nozīmīgo imigrācijas reformas likumprojektu",
+  "title": "Kuras ES valstis piedāvā vislabākās nodarbinātības izredzes?",
+  "subtitle": "Nākotnes nodarbinātības pieaugums šajās valstīs laika posmā no 2022. līdz 2035. gadam tiek lēsts 5,6 % apmērā.",
+  "textNoteDescription": "piezīme",
+  "textSourceDescription": "Tie",
+  "linkDataAccessDescription": "Piekļuve datiem",
   "legend1": "Nav pieejami dati",
-  "customUnitLabel": "dcgdcgdgc"
+  "tooltipExtraInfoLabel": "Noklikšķiniet šeit",
+  "extraInfo_DE": "Vācija paātrina atjaunojamo energoresursu izplatību un cenšas līdz 2030. gadam sasniegt 80% tīras elektroenerģijas",
+  "extraInfo_FR": "Francijas parlaments valsts mēroga protestu laikā pieņem plašu imigrācijas reformas likumprojektu",
+  "customUnitLabel": "BIP"
 }

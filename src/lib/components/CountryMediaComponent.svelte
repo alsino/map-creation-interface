@@ -1,50 +1,52 @@
 <script>
+	// Props
 	export let selectedCountry;
 	export let countryLink;
 	export let mapConfig;
 
+	// Computed values
 	$: countryID = selectedCountry.properties.id;
 	$: countryText = mapConfig.translate[`extraInfo_${countryID}`];
-
-	// Filter csvImport for audio pieces
-	$: asArray = Object.entries(selectedCountry.csvImport);
-	$: audioPieces = asArray.filter(([key, value]) => {
-		return key.includes('audioURL');
-	});
-
-	// Check if country has no audio clips
-	$: noAudioClipAvailable = audioPieces.every((item) => {
-		return item[1] === '';
-	});
+	$: audioPieces = Object.entries(selectedCountry.csvImport).filter(([key]) =>
+		key.includes('audioURL')
+	);
+	$: hasNoAudio = audioPieces.every(([_, value]) => value === '');
+	$: hasImage = selectedCountry.csvImport.imageSourceURL;
+	$: hasVideo = selectedCountry.csvImport.videoURL;
 </script>
 
-<!-- Text -->
+<!-- Text Content -->
 {#if countryText}
 	<div class="pt-5">
-		{#if countryText}
-			{countryText}
-		{/if}
+		<p>{countryText}</p>
 		{#if countryLink}
-			<a class="link-text font-bold" target="_blank" href={selectedCountry.csvImport.linkURL}
-				>{countryLink} …</a
+			<a
+				class="link-text font-bold"
+				target="_blank"
+				href={selectedCountry.csvImport.linkURL}
+				rel="noopener noreferrer"
 			>
+				{countryLink} …
+			</a>
 		{/if}
 	</div>
 {/if}
 
-<!-- Audio -->
-{#if !noAudioClipAvailable}
+<!-- Audio Content -->
+{#if !hasNoAudio}
 	<div class="pt-5">
-		{#each audioPieces as clip}
-			{#if clip[1] !== ''}
+		{#each audioPieces as [_, url]}
+			{#if url}
+				<!-- svelte-ignore element_invalid_self_closing_tag -->
 				<iframe
 					class="pb-2"
 					style="border-radius:5px"
-					src={clip[1]}
+					src={url}
 					width="100%"
 					height="160"
+					title="Audio content"
 					frameborder="0"
-					allowfullscreen=""
+					allowfullscreen
 					allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
 				/>
 			{/if}
@@ -52,23 +54,24 @@
 	</div>
 {/if}
 
-<!-- Image -->
-{#if selectedCountry.csvImport.imageSourceURL}
+<!-- Image Content -->
+{#if hasImage}
 	<div class="pt-5">
-		<a href={selectedCountry.csvImport.imageTargetURL} target="_blank">
-			<img src={selectedCountry.csvImport.imageSourceURL} alt="country info image" />
+		<a href={selectedCountry.csvImport.imageTargetURL} target="_blank" rel="noopener noreferrer">
+			<img src={selectedCountry.csvImport.imageSourceURL} alt="Country information" />
 		</a>
 	</div>
 {/if}
 
-<!-- Video -->
-{#if selectedCountry.csvImport.videoURL}
+<!-- Video Content -->
+{#if hasVideo}
 	<div class="pt-5">
+		<!-- svelte-ignore element_invalid_self_closing_tag -->
 		<iframe
 			width="100%"
 			height="400"
 			src={selectedCountry.csvImport.videoURL}
-			title="YouTube video player"
+			title="Video content"
 			frameborder="0"
 			allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 			allowfullscreen
@@ -78,7 +81,7 @@
 
 <style>
 	.link-text {
-		transition: all 0.2s;
+		@apply transition-all;
 	}
 
 	.link-text:hover {
