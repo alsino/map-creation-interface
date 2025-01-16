@@ -1,17 +1,3 @@
-// import { json } from '@sveltejs/kit';
-// import { VERCEL_TOKEN, GITHUB_TOKEN, GITHUB_USERNAME } from '$env/static/private';
-// import { Octokit } from '@octokit/rest';
-
-// Add debugging for environment variables
-const debugEnv = () => {
-	console.log('Available env vars:', {
-		hasDeployToken: !!env.DEPLOY_VERCEL_TOKEN,
-		hasVercelToken: !!env.VERCEL_TOKEN,
-		hasGithubToken: !!GITHUB_TOKEN,
-		hasGithubUsername: !!GITHUB_USERNAME
-	});
-};
-
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { GITHUB_TOKEN, GITHUB_USERNAME } from '$env/static/private';
