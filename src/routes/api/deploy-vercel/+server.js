@@ -1,5 +1,11 @@
 import { json } from '@sveltejs/kit';
-import { VERCEL_TOKEN, GITHUB_TOKEN, GITHUB_USERNAME } from '$env/static/private';
+import {
+	CUSTOM_VERCEL_TOKEN,
+	VERCEL_TOKEN,
+	GITHUB_TOKEN,
+	GITHUB_USERNAME
+} from '$env/static/private';
+
 import { Octokit } from '@octokit/rest';
 
 // Helper function to wait for repo to be available
@@ -22,9 +28,12 @@ async function waitForRepo(octokit, owner, repo, maxAttempts = 5) {
 	}
 }
 
+// At the start of your POST function, modify the token check:
+const vercelToken = CUSTOM_VERCEL_TOKEN || VERCEL_TOKEN;
+
 export async function POST({ request }) {
 	// Validate environment variables
-	if (!VERCEL_TOKEN || !GITHUB_TOKEN || !GITHUB_USERNAME) {
+	if (!vercelToken || !GITHUB_TOKEN || !GITHUB_USERNAME) {
 		console.error('Missing environment variables');
 		return json(
 			{
