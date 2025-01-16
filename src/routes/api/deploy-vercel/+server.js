@@ -1,6 +1,10 @@
-import { json } from '@sveltejs/kit';
-import { VERCEL_TOKEN, GITHUB_TOKEN, GITHUB_USERNAME } from '$env/static/private';
+// import { json } from '@sveltejs/kit';
+// import { VERCEL_TOKEN, GITHUB_TOKEN, GITHUB_USERNAME } from '$env/static/private';
+// import { Octokit } from '@octokit/rest';
 
+import { json } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
+import { GITHUB_TOKEN, GITHUB_USERNAME } from '$env/static/private';
 import { Octokit } from '@octokit/rest';
 
 // Helper function to wait for repo to be available
@@ -23,9 +27,20 @@ async function waitForRepo(octokit, owner, repo, maxAttempts = 5) {
 	}
 }
 
+// New helper to get Vercel token
+const getVercelToken = () => {
+	const token = env.DEPLOY_VERCEL_TOKEN || env.VERCEL_TOKEN;
+	if (!token) {
+		throw new Error('No Vercel token found');
+	}
+	return token;
+};
+
 export async function POST({ request }) {
+	const token = getVercelToken();
+
 	// Validate environment variables
-	if (!VERCEL_TOKEN || !GITHUB_TOKEN || !GITHUB_USERNAME) {
+	if (!token || !GITHUB_TOKEN || !GITHUB_USERNAME) {
 		console.error('Missing environment variables');
 		return json(
 			{
@@ -95,8 +110,8 @@ export async function POST({ request }) {
 						target: ['production', 'preview', 'development']
 					},
 					{
-						key: 'DEPLOY_VERCEL_TOKEN', // Different name for deployed projects
-						value: VERCEL_TOKEN, // But using our main token's value
+						key: 'DEPLOY_VERCEL_TOKEN', // Using our new name
+						value: token, // Using the token we got from helper
 						type: 'encrypted',
 						target: ['production', 'preview', 'development']
 					}
@@ -117,7 +132,7 @@ export async function POST({ request }) {
 				`https://api.vercel.com/v9/projects/${projectData.id}/domains`,
 				{
 					headers: {
-						Authorization: `Bearer ${VERCEL_TOKEN}`,
+						Authorization: `Bearer ${token}`,
 						'Content-Type': 'application/json'
 					}
 				}
@@ -141,7 +156,7 @@ export async function POST({ request }) {
 		const deployResponse = await fetch('https://api.vercel.com/v13/deployments', {
 			method: 'POST',
 			headers: {
-				Authorization: `Bearer ${VERCEL_TOKEN}`,
+				Authorization: `Bearer ${token}`,
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
