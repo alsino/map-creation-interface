@@ -3,7 +3,8 @@
 	import { page } from '$app/stores';
 	import { geoIdentity } from 'd3-geo';
 	import { feature } from 'topojson-client';
-	import { mapConfig, shouldUpdateMap } from '$lib/stores/config-map';
+	import { mapConfig } from '$lib/stores/config-map';
+	import { shouldUpdateMap } from '$lib/stores/update-map';
 	import { onMount } from 'svelte';
 	import { APP_HEIGHT, mobileSize, isMobile } from '$lib/stores/shared';
 	import { selectedLanguage } from '$lib/stores/shared';
