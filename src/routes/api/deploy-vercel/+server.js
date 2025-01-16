@@ -25,7 +25,6 @@ async function waitForRepo(octokit, owner, repo, maxAttempts = 5) {
 
 // New helper to get Vercel token
 const getVercelToken = () => {
-	debugEnv(); // Add debugging
 	const token = env.DEPLOY_VERCEL_TOKEN || env.VERCEL_TOKEN;
 	if (!token) {
 		throw new Error('No Vercel token found');
