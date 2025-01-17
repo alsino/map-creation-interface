@@ -5,6 +5,7 @@
 	import { dataReady } from '$lib/stores/shared';
 	import { csvParse } from 'd3-dsv';
 	import { writable } from 'svelte/store';
+	import { translations } from '$lib/stores/translations';
 
 	const shouldInitialize = writable(true);
 
@@ -205,10 +206,10 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 			: null;
 
 	$: if (configObject !== null) {
-		console.log('configObject before store update:', configObject);
+		// console.log('configObject before store update:', configObject);
 
 		mapConfig.set(configObject);
-		console.log('mapConfig after update:', $mapConfig);
+		// console.log('mapConfig after update:', $mapConfig);
 
 		// console.log('mapConfig-start', $mapConfig);
 		shouldInitialize.set(false);
@@ -356,6 +357,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 	let translatedLanguages = [];
 	let totalLanguages = 24; // Total number of languages
 
+	// Then modify your triggerTranslations function
 	async function triggerTranslations() {
 		translationLoading = true;
 		translationError = null;
@@ -364,12 +366,19 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 		try {
 			const translateData = {
 				...$mapConfig.translate,
+				title: $mapConfig.title,
+				subtitle: $mapConfig.subtitle,
+				textSourceDescription: $mapConfig.textSourceDescription,
+				textSource: $mapConfig.textSource, // Add this
+				textNoteDescription: $mapConfig.textNoteDescription,
+				textNote: $mapConfig.textNote, // Add this
+				linkDataAccessDescription: $mapConfig.linkDataAccessDescription,
 				legend1: $mapConfig.legend1,
 				customUnitLabel: $mapConfig.customUnitLabel,
-				tooltipExtraInfoLabel: 'Click here' // Use static value
+				tooltipExtraInfoLabel: 'Click here'
 			};
 
-			console.log('Translation data being sent:', translateData); // Add this log
+			// console.log('Translation data being sent:', translateData);
 
 			const response = await fetch('/api/translate', {
 				method: 'POST',
@@ -383,6 +392,12 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 
 			if (!response.ok) {
 				throw new Error(data.error || 'Translation failed');
+			}
+
+			// Update the translations store with the new translations
+			if (data.translations) {
+				// console.log('Received translations:', data.translations);
+				translations.set(data.translations);
 			}
 
 			translatedLanguages = data.completedLanguages || [];
@@ -793,7 +808,7 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 						Generating translations...
 					</span>
 				{:else}
-					Generate Language Files
+					Translate all texts
 				{/if}
 			</button>
 

@@ -13,6 +13,8 @@
 	import MapSimple from '$lib/components/MapSimple.svelte';
 	import Select from 'svelte-select';
 
+	import { translations } from '$lib/stores/translations';
+
 	let heading;
 	let subheading;
 	let tooltip;
@@ -58,6 +60,11 @@
 		};
 	}
 
+	// Your reactive statement stays the same
+	$: if ($translations && Object.keys($translations).length > 0 && $selectedLanguage?.value) {
+		getLanguage($selectedLanguage.value);
+	}
+
 	// Get the view parameter from the page store
 	$: isFullscreen = $page.url.searchParams.get('view') === 'fullscreen';
 
@@ -73,81 +80,88 @@
 
 	onMount(async () => {
 		await fetchAndTransformGeoData();
-		await getLanguage($selectedLanguage.value);
+		// await getLanguage($selectedLanguage.value);
+
+		if ($mapConfig.translate) {
+			translations.set({
+				en: $mapConfig.translate // Assuming 'en' is your default language
+			});
+		}
 	});
 
-	// Function called when language dropdownn is changed
+	// Function called when language dropdown is changed
 	async function getLanguage(lang) {
 		try {
-			shouldUpdateMap.set(false); // Prevent ControlPanel updates
+			shouldUpdateMap.set(false);
 
-			const response = await fetch(`/languages/${lang}.json`);
-			if (!response.ok) {
-				throw new Error(`Failed to load language file: ${response.statusText}`);
+			// console.log('Getting language:', lang);
+			// console.log('Available translations:', Object.keys($translations));
+
+			const data = $translations[lang];
+			if (!data) {
+				// console.log('No data found for language:', lang);
+				return;
 			}
 
-			const data = await response.json();
+			// console.log('Found translation data:', data);
 
-			// Capitalize tooltipExtraInfoLabel if it exists
-			if (data.tooltipExtraInfoLabel) {
-				data.tooltipExtraInfoLabel =
-					data.tooltipExtraInfoLabel.charAt(0).toUpperCase() + data.tooltipExtraInfoLabel.slice(1);
-			}
-
-			// First, find all keys in data that start with 'extraInfo_'
+			// Extract extraInfo entries
 			const extraInfoEntries = Object.keys(data).filter((key) => key.startsWith('extraInfo_'));
+			// console.log('Extra info entries:', extraInfoEntries);
 
-			// Update your local variables
-			heading = data.title;
-			subheading = data.subtitle;
-			textSourceDescription = data.textSourceDescription;
-			textSource = data.textSource;
-			textNoteDescription = data.textNoteDescription;
-			textNote = data.textNote;
-			linkDataAccessDescription = data.linkDataAccessDescription;
-			customUnitLabel = data.customUnitLabel;
-			tooltipExtraInfoLabel = data.tooltipExtraInfoLabel;
-
-			mapConfig.set({
-				...$mapConfig, // Spread all existing properties
-				title: data.title,
-				subtitle: data.subtitle,
-				textSourceDescription: data.textSourceDescription,
-				textSource: data.textSource,
-				textNoteDescription: data.textNoteDescription,
-				textNote: data.textNote,
-				linkDataAccessDescription: data.linkDataAccessDescription,
-				legend1: data.legend1,
-				customUnitLabel: data.customUnitLabel,
-				tooltipExtraInfoLabel: data.tooltipExtraInfoLabel,
-				...Object.fromEntries(extraInfoEntries.map((key) => [key, data[key]])), // include extrainfo keys, e.g. extraInfo_DE or extraInfo_FR
+			// Create the new config object first so we can inspect it
+			const newConfig = {
+				...$mapConfig,
+				title: data.title || '',
+				subtitle: data.subtitle || '',
+				textSourceDescription: data.textSourceDescription || '',
+				textSource: data.textSource || '',
+				textNoteDescription: data.textNoteDescription || '',
+				textNote: data.textNote || '',
+				linkDataAccessDescription: data.linkDataAccessDescription || '',
+				legend1: data.legend1 || '',
+				customUnitLabel: data.customUnitLabel || '',
+				tooltipExtraInfoLabel: data.tooltipExtraInfoLabel || '',
+				...Object.fromEntries(extraInfoEntries.map((key) => [key, data[key] || ''])),
 				translate: {
-					title: data.title,
-					subtitle: data.subtitle,
-					textNoteDescription: data.textNoteDescription,
-					textNote: data.textNote,
-					textSourceDescription: data.textSourceDescription,
-					textSource: data.textSource,
-					linkDataAccessDescription: data.linkDataAccessDescription,
-					legend1: data.legend1,
-					tooltipExtraInfoLabel: data.tooltipExtraInfoLabel,
-					...Object.fromEntries(extraInfoEntries.map((key) => [key, data[key]]))
+					title: data.title || '',
+					subtitle: data.subtitle || '',
+					textNoteDescription: data.textNoteDescription || '',
+					textNote: data.textNote || '',
+					textSourceDescription: data.textSourceDescription || '',
+					textSource: data.textSource || '',
+					linkDataAccessDescription: data.linkDataAccessDescription || '',
+					legend1: data.legend1 || '',
+					tooltipExtraInfoLabel: data.tooltipExtraInfoLabel || '',
+					...Object.fromEntries(extraInfoEntries.map((key) => [key, data[key] || '']))
 				}
-			});
+			};
 
-			// TOOLTIP
+			// console.log('About to update mapConfig with:', newConfig);
+
+			// Update the store
+			mapConfig.set(newConfig);
+
+			// console.log('MapConfig after update:', $mapConfig);
+
+			// Update tooltips
 			tooltipEntries = Object.keys(data).filter((item) => item.includes('tooltip'));
 			tooltip = tooltipEntries.map((item) => ({
 				[item]: data[item],
 				label: data[item],
-				textCountryClick: data.textCountryClick
+				textCountryClick: data.textCountryClick || ''
 			}));
 
 			// Extra Info
 			extraInfoTexts = filterAndReduceExtraInfo(data, 'extraInfoText');
 			extraInfoLinks = filterAndReduceExtraInfo(data, 'extraInfoLink');
 		} catch (error) {
-			console.error('Error loading language file:', error);
+			console.error('Error in getLanguage:', error);
+			console.error('Current state:', {
+				translations: $translations,
+				selectedLanguage: lang,
+				mapConfig: $mapConfig
+			});
 		}
 	}
 
@@ -166,7 +180,9 @@
 	}
 
 	function handleSelect(event) {
+		console.log('Selection changed:', event.detail);
 		$selectedLanguage = { value: event.detail.value, label: event.detail.label };
+		console.log('Calling getLanguage with:', $selectedLanguage.value);
 		getLanguage($selectedLanguage.value);
 	}
 </script>
