@@ -180,9 +180,7 @@
 	}
 
 	function handleSelect(event) {
-		console.log('Selection changed:', event.detail);
 		$selectedLanguage = { value: event.detail.value, label: event.detail.label };
-		console.log('Calling getLanguage with:', $selectedLanguage.value);
 		getLanguage($selectedLanguage.value);
 	}
 </script>
