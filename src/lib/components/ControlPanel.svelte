@@ -364,55 +364,75 @@ Slovakia,SK,0.066,FALSE,,,,,,,,,`;
 		translatedLanguages = [];
 
 		try {
-			const translateData = {
+			const sourceData = {
 				...$mapConfig.translate,
 				title: $mapConfig.title,
 				subtitle: $mapConfig.subtitle,
 				textSourceDescription: $mapConfig.textSourceDescription,
-				textSource: $mapConfig.textSource, // Add this
+				textSource: $mapConfig.textSource,
 				textNoteDescription: $mapConfig.textNoteDescription,
-				textNote: $mapConfig.textNote, // Add this
+				textNote: $mapConfig.textNote,
 				linkDataAccessDescription: $mapConfig.linkDataAccessDescription,
 				legend1: $mapConfig.legend1,
 				customUnitLabel: $mapConfig.customUnitLabel,
 				tooltipExtraInfoLabel: 'Click here'
 			};
 
-			// console.log('Translation data being sent:', translateData);
+			let batchIndex = 0;
+			let hasMore = true;
+			let allTranslations = {};
 
-			const response = await fetch('/api/translate', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(translateData)
-			});
+			while (hasMore) {
+				const response = await fetch('/api/translate', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						sourceObject: sourceData,
+						batchIndex
+					})
+				});
 
-			const data = await response.json();
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
 
-			if (!response.ok) {
-				throw new Error(data.error || 'Translation failed');
-			}
+				const data = await response.json();
 
-			// Update the translations store with the new translations
-			if (data.translations) {
-				// console.log('Received translations:', data.translations);
-				translations.set(data.translations);
-			}
+				if (!data.success) {
+					throw new Error(data.error || 'Translation failed');
+				}
 
-			translatedLanguages = data.completedLanguages || [];
+				// Update progress
+				if (data.completedLanguages) {
+					translatedLanguages = [...new Set([...translatedLanguages, ...data.completedLanguages])];
+				}
 
-			if (data.warning) {
-				translationError = {
-					type: 'warning',
-					message: data.message,
-					details: data.details
-				};
-			} else {
-				translationError = {
-					type: 'success',
-					message: 'All translations completed successfully!'
-				};
+				// Merge translations
+				allTranslations = { ...allTranslations, ...data.translations };
+
+				// Update the translations store with accumulated translations
+				translations.set(allTranslations);
+
+				// Handle completion
+				if (data.type === 'complete') {
+					hasMore = false;
+					translationError =
+						data.errors?.length > 0
+							? {
+									type: 'warning',
+									message: data.message,
+									details: data.errors
+								}
+							: {
+									type: 'success',
+									message: data.message
+								};
+				} else {
+					hasMore = data.hasMore;
+					batchIndex++;
+				}
 			}
 		} catch (error) {
 			console.error('Error triggering translations:', error);

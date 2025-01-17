@@ -1,11 +1,3 @@
-// import { json } from '@sveltejs/kit';
-// import { v2 } from '@google-cloud/translate';
-// import * as fs from 'fs';
-// import { env } from '$env/dynamic/private';
-
-// const { Translate } = v2;
-// const googleClient = new Translate({ key: env.GOOGLE_API_KEY });
-
 import { json } from '@sveltejs/kit';
 import { v2 } from '@google-cloud/translate';
 import { env } from '$env/dynamic/private';
@@ -62,66 +54,65 @@ async function translateJSON(sourceObject, target, label) {
 
 export async function POST({ request }) {
 	try {
-		const sourceObject = await request.json();
+		const { sourceObject, batchIndex = 0 } = await request.json();
 
 		if (!sourceObject || Object.keys(sourceObject).length === 0) {
 			throw new Error('No content to translate');
 		}
 
-		console.log('Starting translation process...');
+		const BATCH_SIZE = 4;
+		const totalBatches = Math.ceil(languages.length / BATCH_SIZE);
+
+		// Calculate the start and end indices for this batch
+		const start = batchIndex * BATCH_SIZE;
+		const end = Math.min(start + BATCH_SIZE, languages.length);
+		const batch = languages.slice(start, end);
 
 		const allErrors = [];
 		const results = [];
 		const translations = {};
-		const BATCH_SIZE = 4; // Process 4 languages at a time
 
-		// Process languages in batches
-		for (let i = 0; i < languages.length; i += BATCH_SIZE) {
-			console.log(`Processing batch ${i / BATCH_SIZE + 1}`);
-			const batch = languages.slice(i, i + BATCH_SIZE);
+		// Process the current batch
+		const batchPromises = batch.map(async (item) => {
+			try {
+				const { translatedObject, errors } = await translateJSON(
+					sourceObject,
+					item.value,
+					item.label
+				);
 
-			// Process each language in the current batch
-			const batchPromises = batch.map(async (item) => {
-				try {
-					const { translatedObject, errors } = await translateJSON(
-						sourceObject,
-						item.value,
-						item.label
-					);
+				translations[item.value] = translatedObject;
 
-					translations[item.value] = translatedObject;
-
-					if (errors.length > 0) {
-						allErrors.push(...errors);
-					}
-
-					results.push(item.label);
-				} catch (error) {
-					allErrors.push(`Failed processing ${item.label}: ${error.message}`);
+				if (errors.length > 0) {
+					allErrors.push(...errors);
 				}
-			});
 
-			// Wait for current batch to complete before moving to next batch
-			await Promise.all(batchPromises);
-		}
+				results.push(item.label);
+			} catch (error) {
+				allErrors.push(`Failed processing ${item.label}: ${error.message}`);
+			}
+		});
 
-		if (allErrors.length > 0) {
-			// Return partial success with warnings
-			return json({
-				success: true,
-				warning: true,
-				message: 'Translations completed with some issues',
-				details: allErrors,
-				completedLanguages: results,
-				translations
-			});
-		}
+		// Wait for all translations in this batch to complete
+		await Promise.all(batchPromises);
+
+		// Determine if this is the last batch
+		const isLastBatch = end >= languages.length;
 
 		return json({
 			success: true,
-			message: 'All translations completed successfully',
+			batchIndex,
+			totalBatches,
 			completedLanguages: results,
-			translations
+			translations,
+			errors: allErrors,
+			hasMore: !isLastBatch,
+			type: isLastBatch ? 'complete' : 'batchComplete',
+			message: isLastBatch
+				? allErrors.length > 0
+					? 'Translations completed with some issues'
+					: 'All translations completed successfully'
+				: `Batch ${batchIndex + 1}/${totalBatches} completed`
 		});
 	} catch (error) {
 		console.error('Translation error:', error);
