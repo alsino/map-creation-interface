@@ -116,13 +116,17 @@
 	});
 
 	// Update your getLanguage function
+	// In MapPanel.svelte
 	async function getLanguage(lang) {
 		try {
 			shouldUpdateMap.set(false);
 
 			let data;
-			if (isDeployedMap()) {
-				// In deployed map, load from static files
+			const isSubApp = window.location.search.includes('view=fullscreen');
+			console.log('Is sub app:', isSubApp); // Add this log to verify
+
+			if (isSubApp) {
+				// In deployed sub-app, load from static files
 				data = await loadTranslationFile(lang);
 				if (!data) {
 					console.warn('No translation file found for language:', lang);
@@ -137,15 +141,53 @@
 				}
 			}
 
-			// Rest of your existing code...
+			// Create the new config object
 			const newConfig = {
 				...$mapConfig,
-				title: data.title || ''
-				// ... rest of your config updates
+				title: data.title || '',
+				subtitle: data.subtitle || '',
+				textSourceDescription: data.textSourceDescription || '',
+				textSource: data.textSource || '',
+				textNoteDescription: data.textNoteDescription || '',
+				textNote: data.textNote || '',
+				linkDataAccessDescription: data.linkDataAccessDescription || '',
+				legend1: data.legend1 || '',
+				customUnitLabel: data.customUnitLabel || '',
+				tooltipExtraInfoLabel: data.tooltipExtraInfoLabel || '',
+				translate: {
+					title: data.title || '',
+					subtitle: data.subtitle || '',
+					textNoteDescription: data.textNoteDescription || '',
+					textNote: data.textNote || '',
+					textSourceDescription: data.textSourceDescription || '',
+					textSource: data.textSource || '',
+					linkDataAccessDescription: data.linkDataAccessDescription || '',
+					legend1: data.legend1 || '',
+					tooltipExtraInfoLabel: data.tooltipExtraInfoLabel || ''
+				}
 			};
 
+			// Extract and add extraInfo entries
+			const extraInfoEntries = Object.keys(data).filter((key) => key.startsWith('extraInfo_'));
+			extraInfoEntries.forEach((key) => {
+				newConfig[key] = data[key] || '';
+				newConfig.translate[key] = data[key] || '';
+			});
+
+			// Update the store
 			mapConfig.set(newConfig);
-			// ... rest of your existing code
+
+			// Update tooltips
+			tooltipEntries = Object.keys(data).filter((item) => item.includes('tooltip'));
+			tooltip = tooltipEntries.map((item) => ({
+				[item]: data[item],
+				label: data[item],
+				textCountryClick: data.textCountryClick || ''
+			}));
+
+			// Extra Info
+			extraInfoTexts = filterAndReduceExtraInfo(data, 'extraInfoText');
+			extraInfoLinks = filterAndReduceExtraInfo(data, 'extraInfoLink');
 		} catch (error) {
 			console.error('Error in getLanguage:', error);
 			console.error('Current state:', {
