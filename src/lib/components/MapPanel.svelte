@@ -37,6 +37,18 @@
 
 	let transformedGeoData;
 
+	// Add this function to detect if we're in a deployed sub-app
+	function isDeployedMap() {
+		// Check if we're in a deployed map by looking for specific URL parameters
+		// or checking the current URL path structure
+		if (typeof window !== 'undefined') {
+			const url = new URL(window.location.href);
+			// Deployed maps will have the view=fullscreen parameter
+			return url.searchParams.has('view') && url.searchParams.get('view') === 'fullscreen';
+		}
+		return false;
+	}
+
 	// Add this function near the top of your script
 	async function loadTranslationFile(lang) {
 		try {
@@ -103,22 +115,21 @@
 		}
 	});
 
-	// Function called when language dropdown is changed
 	// Update your getLanguage function
 	async function getLanguage(lang) {
 		try {
 			shouldUpdateMap.set(false);
 
 			let data;
-			if (process.env.NODE_ENV === 'production') {
-				// In production, load from static files
+			if (isDeployedMap()) {
+				// In deployed map, load from static files
 				data = await loadTranslationFile(lang);
 				if (!data) {
 					console.warn('No translation file found for language:', lang);
 					return;
 				}
 			} else {
-				// In development, use the store
+				// In main app, use the store
 				data = $translations[lang];
 				if (!data) {
 					console.warn('No translation data found for language:', lang);
@@ -126,55 +137,15 @@
 				}
 			}
 
-			// Create the new config object first so we can inspect it
+			// Rest of your existing code...
 			const newConfig = {
 				...$mapConfig,
-				title: data.title || '',
-				subtitle: data.subtitle || '',
-				textSourceDescription: data.textSourceDescription || '',
-				textSource: data.textSource || '',
-				textNoteDescription: data.textNoteDescription || '',
-				textNote: data.textNote || '',
-				linkDataAccessDescription: data.linkDataAccessDescription || '',
-				legend1: data.legend1 || '',
-				customUnitLabel: data.customUnitLabel || '',
-				tooltipExtraInfoLabel: data.tooltipExtraInfoLabel || '',
-				translate: {
-					title: data.title || '',
-					subtitle: data.subtitle || '',
-					textNoteDescription: data.textNoteDescription || '',
-					textNote: data.textNote || '',
-					textSourceDescription: data.textSourceDescription || '',
-					textSource: data.textSource || '',
-					linkDataAccessDescription: data.linkDataAccessDescription || '',
-					legend1: data.legend1 || '',
-					tooltipExtraInfoLabel: data.tooltipExtraInfoLabel || ''
-				}
+				title: data.title || ''
+				// ... rest of your config updates
 			};
 
-			// Extract extraInfo entries
-			const extraInfoEntries = Object.keys(data).filter((key) => key.startsWith('extraInfo_'));
-
-			// Add extraInfo entries to both main config and translate object
-			extraInfoEntries.forEach((key) => {
-				newConfig[key] = data[key] || '';
-				newConfig.translate[key] = data[key] || '';
-			});
-
-			// Update the store
 			mapConfig.set(newConfig);
-
-			// Update tooltips
-			tooltipEntries = Object.keys(data).filter((item) => item.includes('tooltip'));
-			tooltip = tooltipEntries.map((item) => ({
-				[item]: data[item],
-				label: data[item],
-				textCountryClick: data.textCountryClick || ''
-			}));
-
-			// Extra Info
-			extraInfoTexts = filterAndReduceExtraInfo(data, 'extraInfoText');
-			extraInfoLinks = filterAndReduceExtraInfo(data, 'extraInfoLink');
+			// ... rest of your existing code
 		} catch (error) {
 			console.error('Error in getLanguage:', error);
 			console.error('Current state:', {
@@ -183,6 +154,7 @@
 			});
 		}
 	}
+
 	// Fixed filterAndReduceExtraInfo function
 	function filterAndReduceExtraInfo(data, filterTerm) {
 		const asArray = Object.entries(data);
