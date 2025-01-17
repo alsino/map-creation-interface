@@ -108,9 +108,10 @@
 </script>
 
 <div class="rounded-lg bg-white p-6 text-left shadow-sm">
+	<h3 class="space-y-2 font-bold">Create Map</h3>
 	<form on:submit|preventDefault={handleSubmit} class="space-y-4">
 		<div>
-			<label for="repoName" class="mb-2 block">Repository Name:</label>
+			<label for="repoName" class="mb-2 block">Please enter a repository name below:</label>
 			<input
 				type="text"
 				id="repoName"
