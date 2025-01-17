@@ -1,7 +1,7 @@
 <script>
-	// Update near where you set deploymentUrl
-	// import { isFullscreen } from '$lib/stores/view-state';
 	import { mapConfig } from '$lib/stores/config-map';
+	import { translations } from '$lib/stores/translations'; // Add this import
+
 	let repoName = '';
 	let errorMessage = null;
 	let successMessage = null;
@@ -15,19 +15,20 @@
 		return str
 			.toLowerCase()
 			.trim()
-			.replace(/[^\w\s-]/g, '') // Remove special characters
-			.replace(/[\s_]+/g, '-') // Replace spaces and underscores with hyphens
-			.replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+			.replace(/[^\w\s-]/g, '')
+			.replace(/[\s_]+/g, '-')
+			.replace(/^-+|-+$/g, '');
 	}
 
-	// Updated embed code function with slug
 	function getEmbedCode(mapId, deployUrl, embedUrl) {
 		const slugifiedId = toSlug(mapId);
 		return `<iframe title="New Map" aria-label="Map" id="${slugifiedId}" src="${deployUrl}" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="624"></iframe><script type="text/javascript">window.addEventListener("message",e=>{if("${embedUrl}"!==e.origin)return;let t=e.data;if(t.height){document.getElementById("${slugifiedId}").height=t.height+"px"}},!1)<\/script>`;
 	}
 
+	// Updated steps to include translation saving
 	let steps = [
 		{ id: 'validate', text: 'Validating repository name', completed: false, current: false },
+		{ id: 'translations', text: 'Saving translations', completed: false, current: false },
 		{ id: 'create', text: 'Creating GitHub repository', completed: false, current: false },
 		{ id: 'config', text: 'Configuring map settings', completed: false, current: false },
 		{ id: 'deploy', text: 'Deploying to Vercel', completed: false, current: false }
@@ -53,23 +54,35 @@
 				);
 			}
 
-			// Create and config steps
+			// Move to create repository step
 			steps = steps.map((step) => ({
 				...step,
 				completed: step.id === 'validate',
 				current: step.id === 'create'
 			}));
 
+			// Create repository and commit files
 			const response = await fetch('/api/commit-component', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ repoName, mapConfig: $mapConfig })
+				body: JSON.stringify({
+					repoName,
+					mapConfig: $mapConfig,
+					translations: $translations // Add translations to the request
+				})
 			});
 
 			const data = await response.json();
 			if (!response.ok) throw new Error(data.error || 'Failed to create repository');
 
 			repoUrl = data.repoUrl;
+
+			// Check for warnings in the response
+			if (data.warnings) {
+				console.warn(data.warnings);
+				// Optionally show warnings to the user
+				successMessage = `${data.message}\n\nWarning: ${data.warnings}`;
+			}
 
 			// Update steps for deployment
 			steps = steps.map((step) => ({
@@ -78,6 +91,7 @@
 				current: step.id === 'deploy'
 			}));
 
+			// Deploy to Vercel
 			const deployResponse = await fetch('/api/deploy-vercel', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -97,7 +111,10 @@
 				current: false
 			}));
 
-			successMessage = 'Successfully deployed!';
+			if (!successMessage) {
+				// Only set if not already set by warnings
+				successMessage = 'Successfully deployed!';
+			}
 		} catch (error) {
 			errorMessage = error.message;
 			steps = steps.map((step) => ({ ...step, current: false }));
