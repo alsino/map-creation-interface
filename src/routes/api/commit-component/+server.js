@@ -113,17 +113,21 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 }
 
 // Commit language files in batches
+// Commit language files with controlled parallel processing
 async function commitLanguageFiles(octokit, user, repoName, translations) {
 	const languages = Object.keys(translations);
+	const BATCH_SIZE = 5; // Adjust as needed
 
 	for (let i = 0; i < languages.length; i += BATCH_SIZE) {
 		const batch = languages.slice(i, i + BATCH_SIZE);
+
+		// Process each batch sequentially
 		await Promise.all(
 			batch.map(async (lang) => {
-				const content = JSON.stringify(translations[lang], null, 2);
-				const path = `static/languages/${lang}.json`;
-
 				try {
+					const content = JSON.stringify(translations[lang], null, 2);
+					const path = `static/languages/${lang}.json`;
+
 					let sha;
 					try {
 						const { data: existingFile } = await octokit.repos.getContent({
@@ -133,7 +137,7 @@ async function commitLanguageFiles(octokit, user, repoName, translations) {
 						});
 						sha = existingFile.sha;
 					} catch (error) {
-						// File doesn't exist yet
+						// File doesn't exist yet, no SHA needed
 					}
 
 					await octokit.repos.createOrUpdateFileContents({
