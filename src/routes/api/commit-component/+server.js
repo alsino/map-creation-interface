@@ -60,23 +60,28 @@ async function commitLanguageFile(octokit, user, repoName, lang, content, maxRet
 async function commitLanguageFiles(octokit, user, repoName, translations) {
 	const languages = Object.keys(translations);
 	let processedCount = 0;
+	const CHUNK_SIZE = 5;
 
-	for (let i = 0; i < languages.length; i++) {
-		const lang = languages[i];
-		const content = JSON.stringify(translations[lang], null, 2);
+	// Process languages in smaller chunks
+	for (let i = 0; i < languages.length; i += CHUNK_SIZE) {
+		const chunk = languages.slice(i, Math.min(i + CHUNK_SIZE, languages.length));
 
-		try {
+		// Process each language in the chunk
+		for (const lang of chunk) {
+			const content = JSON.stringify(translations[lang], null, 2);
 			await commitLanguageFile(octokit, user, repoName, lang, content);
 			processedCount++;
 			console.log(`Successfully processed ${lang} (${processedCount}/${languages.length})`);
 
-			// Small delay between files to avoid rate limits
-			if (i < languages.length - 1) {
-				await new Promise((resolve) => setTimeout(resolve, 1000));
+			// Small delay between files
+			if (processedCount < languages.length) {
+				await new Promise((resolve) => setTimeout(resolve, 500));
 			}
-		} catch (error) {
-			// If any file fails, throw an error to stop the process
-			throw new Error(`Failed to process ${lang}: ${error.message}`);
+		}
+
+		// Larger delay between chunks
+		if (i + CHUNK_SIZE < languages.length) {
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 		}
 	}
 

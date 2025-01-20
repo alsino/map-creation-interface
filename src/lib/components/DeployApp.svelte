@@ -65,22 +65,32 @@
 		repoUrl = null;
 
 		try {
-			// Step 1: Save translations first
+			// Step 1: Prepare translations in smaller chunks
 			if ($translations) {
 				updateSteps('translations');
-				const translationResponse = await fetch('/api/save-translations', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ translations: $translations })
-				});
+				const languages = Object.keys($translations);
+				const chunkSize = 5;
 
-				if (!translationResponse.ok) {
-					const error = await translationResponse.json();
-					throw new Error(error.error || 'Failed to save translations');
+				for (let i = 0; i < languages.length; i += chunkSize) {
+					const chunk = languages.slice(i, i + chunkSize);
+					const chunkTranslations = {};
+					chunk.forEach((lang) => {
+						chunkTranslations[lang] = $translations[lang];
+					});
+
+					const translationResponse = await fetch('/api/save-translations', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ translations: chunkTranslations })
+					});
+
+					if (!translationResponse.ok) {
+						throw new Error('Failed to save translations chunk');
+					}
 				}
 			}
 
-			// Step 2: Create repository and commit files
+			// Step 2: Create repository
 			updateSteps('create', ['translations']);
 			const response = await fetch('/api/commit-component', {
 				method: 'POST',
@@ -89,12 +99,21 @@
 					repoName,
 					mapConfig: $mapConfig,
 					translations: $translations
-				})
+				}),
+				// Set a longer timeout
+				signal: AbortSignal.timeout(60000) // 60 seconds timeout
 			});
 
+			// Handle potential timeout or error
 			if (!response.ok) {
-				const error = await response.json();
-				throw new Error(error.error || 'Failed to create repository');
+				const contentType = response.headers.get('content-type');
+				if (contentType && contentType.includes('application/json')) {
+					const error = await response.json();
+					throw new Error(error.error || 'Failed to create repository');
+				} else {
+					const text = await response.text();
+					throw new Error(`Server error: ${text}`);
+				}
 			}
 
 			const data = await response.json();
@@ -108,11 +127,12 @@
 				body: JSON.stringify({ repoName })
 			});
 
-			const deployData = await deployResponse.json();
 			if (!deployResponse.ok) {
-				throw new Error(deployData.error || 'Failed to deploy to Vercel');
+				const error = await deployResponse.json();
+				throw new Error(error.error || 'Failed to deploy to Vercel');
 			}
 
+			const deployData = await deployResponse.json();
 			deploymentUrl = `${deployData.projectUrl}?view=fullscreen`;
 			embedUrl = `${deployData.projectUrl}`;
 
@@ -123,12 +143,18 @@
 			successMessage = 'Successfully deployed!';
 
 			if (data.languageStats) {
-				const { processedCount, totalLanguages } = data.languageStats;
-				successMessage = `Successfully deployed! All ${processedCount} language files were processed.`;
+				successMessage += ` All ${data.languageStats.processedCount} language files were processed.`;
 			}
 		} catch (error) {
-			console.error('Error:', error);
+			console.error('Error details:', error);
 			errorMessage = error.message;
+
+			// Check if it's a timeout error
+			if (error.name === 'AbortError') {
+				errorMessage =
+					'The operation timed out. Please try again with fewer languages or contact support.';
+			}
+
 			updateSteps(null);
 		} finally {
 			isLoading = false;
