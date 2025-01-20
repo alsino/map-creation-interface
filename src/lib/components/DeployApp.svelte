@@ -58,6 +58,7 @@
 		}));
 	}
 
+	// Add this to your handleSubmit function
 	async function handleSubmit() {
 		isLoading = true;
 		errorMessage = null;
@@ -65,46 +66,31 @@
 		repoUrl = null;
 
 		try {
-			let translationReferenceId = null;
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
 
-			// Step 1: Save translations if they exist
-			if ($translations && Object.keys($translations).length > 0) {
-				updateSteps('translations');
-
-				const translationResponse = await fetch('/api/save-translations', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ translations: $translations })
-				});
-
-				if (!translationResponse.ok) {
-					const error = await translationResponse.json();
-					throw new Error(error.error || 'Failed to save translations');
-				}
-
-				const translationData = await translationResponse.json();
-				translationReferenceId = translationData.referenceId;
-			}
-
-			// Step 2: Create repository and commit files
-			updateSteps('create', ['translations']);
 			const response = await fetch('/api/commit-component', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: {
+					'Content-Type': 'application/json',
+					Accept: 'application/json'
+				},
 				body: JSON.stringify({
 					repoName,
 					mapConfig: $mapConfig,
-					translationReferenceId
-				})
+					translations: $translations
+				}),
+				signal: controller.signal
 			});
 
+			clearTimeout(timeoutId);
+
 			if (!response.ok) {
-				const contentType = response.headers.get('content-type');
-				if (contentType && contentType.includes('application/json')) {
-					const error = await response.json();
-					throw new Error(error.error || 'Failed to create repository');
-				} else {
-					const text = await response.text();
+				const text = await response.text();
+				try {
+					const data = JSON.parse(text);
+					throw new Error(data.error || 'Failed to create repository');
+				} catch (e) {
 					throw new Error(`Server error: ${text}`);
 				}
 			}
@@ -112,36 +98,50 @@
 			const data = await response.json();
 			repoUrl = data.repoUrl;
 
-			// Step 3: Deploy to Vercel
-			updateSteps('deploy', ['translations', 'create', 'config']);
-			const deployResponse = await fetch('/api/deploy-vercel', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ repoName })
-			});
+			// Handle deployment
+			try {
+				const deployController = new AbortController();
+				const deployTimeoutId = setTimeout(() => deployController.abort(), 15000);
 
-			if (!deployResponse.ok) {
-				const error = await deployResponse.json();
-				throw new Error(error.error || 'Failed to deploy to Vercel');
-			}
+				const deployResponse = await fetch('/api/deploy-vercel', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ repoName }),
+					signal: deployController.signal
+				});
 
-			const deployData = await deployResponse.json();
-			deploymentUrl = `${deployData.projectUrl}?view=fullscreen`;
-			embedUrl = `${deployData.projectUrl}`;
+				clearTimeout(deployTimeoutId);
 
-			updateSteps(
-				null,
-				steps.map((step) => step.id)
-			);
-			successMessage = 'Successfully deployed!';
+				const deployData = await deployResponse.json();
+				if (!deployResponse.ok) {
+					throw new Error(deployData.error || 'Failed to deploy to Vercel');
+				}
 
-			if (data.languageStats) {
-				successMessage += ` ${data.languageStats.processedCount} language files were processed.`;
+				deploymentUrl = `${deployData.projectUrl}?view=fullscreen`;
+				embedUrl = `${deployData.projectUrl}`;
+
+				// All steps completed
+				steps = steps.map((step) => ({ ...step, completed: true, current: false }));
+				successMessage = 'Successfully deployed!';
+			} catch (deployError) {
+				console.error('Deploy error:', deployError);
+				successMessage =
+					'Repository created, but deployment failed. You can deploy manually from the repository.';
+				steps = steps.map((step) => ({
+					...step,
+					completed: step.id !== 'deploy',
+					current: false
+				}));
 			}
 		} catch (error) {
-			console.error('Error details:', error);
-			errorMessage = error.message;
-			updateSteps(null);
+			console.error('Error:', error);
+			errorMessage =
+				error.name === 'AbortError'
+					? 'Request timed out. The operation might still complete in the background.'
+					: error.message;
+			steps = steps.map((step) => ({ ...step, current: false }));
 		} finally {
 			isLoading = false;
 		}
