@@ -1,123 +1,16 @@
 import { json } from '@sveltejs/kit';
 import { Octokit } from '@octokit/rest';
 import { GITHUB_TOKEN } from '$env/static/private';
-import { readdir, readFile, writeFile, mkdir, unlink, rmdir } from 'fs/promises';
+import { readdir, readFile, writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import ignore from 'ignore';
 import { execSync } from 'child_process';
+import { saveTranslationsToBlob } from '$lib/utils/blobStorage';
 
-// Update these constants
-const MAX_RETRIES = 5;
-const RETRY_DELAY = 2000; // 2 seconds
-const REPO_CREATION_WAIT = 5000; // 5 seconds
-
-// Add the verification function
-async function verifyRepositoryExists(octokit, owner, repo, maxAttempts = 5) {
-	for (let i = 0; i < maxAttempts; i++) {
-		try {
-			await octokit.repos.get({
-				owner,
-				repo
-			});
-			return true; // Repository found
-		} catch (error) {
-			if (i === maxAttempts - 1) {
-				throw new Error(`Failed to find repository after ${maxAttempts} attempts`);
-			}
-			// Wait before next attempt
-			await new Promise((resolve) => setTimeout(resolve, 2000));
-		}
-	}
-	return false;
-}
-
-async function getAllFiles(dir, ignoredFiles) {
-	const files = new Map();
-
-	// First ensure package-lock.json exists
-	try {
-		await readFile('package-lock.json', 'utf-8');
-	} catch (error) {
-		console.log('Generating package-lock.json...');
-		execSync('npm install', { stdio: 'inherit' });
-	}
-
-	async function scan(directory) {
-		const entries = await readdir(directory, { withFileTypes: true });
-
-		for (const entry of entries) {
-			const path = join(directory, entry.name);
-			const relativePath = path.replace(process.cwd() + '/', '');
-
-			if (
-				relativePath.startsWith('.git/') ||
-				(ignoredFiles.ignores(relativePath) && relativePath !== 'package-lock.json')
-			)
-				continue;
-
-			if (entry.isDirectory()) {
-				await scan(path);
-			} else {
-				const content = await readFile(path, 'utf-8');
-				files.set(relativePath, content);
-			}
-		}
-	}
-
-	await scan(dir);
-	return files;
-}
-
-async function saveLanguageFiles(translations) {
-	try {
-		const languagesDir = join(process.cwd(), 'static', 'languages');
-
-		// Create languages directory if it doesn't exist
-		await mkdir(languagesDir, { recursive: true });
-
-		// Save each language file
-		for (const [lang, content] of Object.entries(translations)) {
-			const filePath = join(languagesDir, `${lang}.json`);
-			await writeFile(filePath, JSON.stringify(content, null, 2), 'utf-8');
-		}
-	} catch (error) {
-		console.error('Error saving language files:', error);
-		throw new Error(`Failed to save language files: ${error.message}`);
-	}
-}
-
-async function cleanupLanguageFiles() {
-	try {
-		const languagesDir = join(process.cwd(), 'static', 'languages');
-		const entries = await readdir(languagesDir);
-
-		// Delete all files in the directory
-		for (const entry of entries) {
-			await unlink(join(languagesDir, entry));
-		}
-
-		// Remove the directory itself
-		await rmdir(languagesDir);
-	} catch (error) {
-		console.error('Failed to clean up language files:', error);
-		// Don't throw, just log the error
-	}
-}
-
+// Add back the getLanguageFiles function
 async function getLanguageFiles() {
 	const languageFiles = new Map();
 	const languagesDir = join(process.cwd(), 'static', 'languages');
-
-	try {
-		// Check if directory exists first
-		await readdir(languagesDir);
-	} catch (error) {
-		if (error.code === 'ENOENT') {
-			// Directory doesn't exist, return empty Map
-			return languageFiles;
-		}
-		throw error;
-	}
 
 	try {
 		const entries = await readdir(languagesDir, { withFileTypes: true });
@@ -126,12 +19,12 @@ async function getLanguageFiles() {
 			if (!entry.isDirectory()) {
 				const path = join(languagesDir, entry.name);
 				const content = await readFile(path, 'utf-8');
+				// Set the path relative to the repo root
 				languageFiles.set(`static/languages/${entry.name}`, content);
 			}
 		}
 	} catch (error) {
 		console.error('Error reading language files:', error);
-		throw new Error(`Failed to read language files: ${error.message}`);
 	}
 
 	return languageFiles;
@@ -155,6 +48,10 @@ export async function POST({ request }) {
 		);
 	}
 
+	const MAX_RETRIES = 3;
+	const RETRY_DELAY = 2000;
+	const REPO_CREATION_WAIT = 5000;
+
 	async function retryOperation(operation, retries = MAX_RETRIES) {
 		for (let i = 0; i < retries; i++) {
 			try {
@@ -167,9 +64,14 @@ export async function POST({ request }) {
 	}
 
 	try {
-		// Save translations first if provided
-		if (translations && Object.keys(translations).length > 0) {
-			await saveLanguageFiles(translations);
+		// Save translations to blob storage if in main app
+		if (translations) {
+			try {
+				await saveTranslationsToBlob(translations);
+			} catch (error) {
+				console.error('Error saving to blob storage:', error);
+				// Continue with repository creation even if blob storage fails
+			}
 		}
 
 		const octokit = new Octokit({ auth: GITHUB_TOKEN });
@@ -206,7 +108,6 @@ export async function POST({ request }) {
 				});
 			});
 
-			// Wait after deletion
 			await new Promise((resolve) => setTimeout(resolve, 2000));
 		} catch (error) {
 			if (error.status !== 404) throw error;
@@ -227,9 +128,6 @@ export async function POST({ request }) {
 
 		// Wait for repository to be ready
 		await new Promise((resolve) => setTimeout(resolve, REPO_CREATION_WAIT));
-
-		// Verify repository exists
-		await verifyRepositoryExists(octokit, user.login, repoName);
 
 		// Get and update config-map.js
 		try {
@@ -257,14 +155,23 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 				});
 			});
 
+			// For sub-apps, save translations to static files
+			if (process.env.NODE_ENV !== 'production') {
+				const languagesDir = join(process.cwd(), 'static', 'languages');
+				await mkdir(languagesDir, { recursive: true });
+
+				for (const [lang, content] of Object.entries(translations)) {
+					const filePath = join(languagesDir, `${lang}.json`);
+					await writeFile(filePath, JSON.stringify(content, null, 2), 'utf-8');
+				}
+			}
+
 			// Get language files and commit them
 			const languageFiles = await getLanguageFiles();
-			const failedFiles = [];
 
 			for (const [path, content] of languageFiles) {
 				try {
 					await retryOperation(async () => {
-						// First try to get existing file (if it exists)
 						let sha;
 						try {
 							const { data: existingFile } = await octokit.repos.getContent({
@@ -289,12 +196,8 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 					});
 				} catch (error) {
 					console.error(`Failed to commit language file ${path}:`, error);
-					failedFiles.push(path);
 				}
 			}
-
-			// Clean up temporary language files
-			await cleanupLanguageFiles();
 
 			// Trigger Vercel deployment
 			try {
@@ -310,7 +213,6 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 					message: 'Repository created but deployment failed',
 					status: 'warning',
 					details: error.message,
-					failedFiles: failedFiles.length > 0 ? failedFiles : undefined,
 					repoUrl: `https://github.com/${user.login}/${repoName}`
 				});
 			}
@@ -318,10 +220,6 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 			return json({
 				message: 'Repository created and configured successfully',
 				status: 'success',
-				warnings:
-					failedFiles.length > 0
-						? `Failed to commit some language files: ${failedFiles.join(', ')}`
-						: undefined,
 				repoUrl: `https://github.com/${user.login}/${repoName}`
 			});
 		} catch (error) {
@@ -338,9 +236,6 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 		}
 	} catch (error) {
 		console.error('Error:', error);
-		// Try to clean up language files even if there was an error
-		await cleanupLanguageFiles();
-
 		return json(
 			{
 				error: error.message || 'Failed to create repository',

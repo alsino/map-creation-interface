@@ -49,14 +49,39 @@
 		return false;
 	}
 
-	// Add this function near the top of your script
+	// // Add this function near the top of your script
+	// async function loadTranslationFile(lang) {
+	// 	try {
+	// 		const response = await fetch(`/languages/${lang}.json`);
+	// 		if (!response.ok) {
+	// 			throw new Error(`Failed to load language file: ${response.statusText}`);
+	// 		}
+	// 		return await response.json();
+	// 	} catch (error) {
+	// 		console.error(`Error loading translation for ${lang}:`, error);
+	// 		return null;
+	// 	}
+	// }
+
 	async function loadTranslationFile(lang) {
 		try {
-			const response = await fetch(`/languages/${lang}.json`);
-			if (!response.ok) {
-				throw new Error(`Failed to load language file: ${response.statusText}`);
+			const isSubApp = window.location.search.includes('view=fullscreen');
+
+			if (isSubApp) {
+				// In sub-app, load from static files
+				const response = await fetch(`/languages/${lang}.json`);
+				if (!response.ok) {
+					throw new Error(`Failed to load language file: ${response.statusText}`);
+				}
+				return await response.json();
+			} else {
+				// In main app, load from blob storage
+				const response = await fetch(`/api/translations/${lang}`);
+				if (!response.ok) {
+					throw new Error(`Failed to load translation: ${response.statusText}`);
+				}
+				return await response.json();
 			}
-			return await response.json();
 		} catch (error) {
 			console.error(`Error loading translation for ${lang}:`, error);
 			return null;
@@ -135,6 +160,7 @@
 			} else {
 				// In main app, use the store
 				data = $translations[lang];
+				console.log($translations);
 				if (!data) {
 					console.warn('No translation data found for language:', lang);
 					return;
