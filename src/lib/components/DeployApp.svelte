@@ -65,32 +65,28 @@
 		repoUrl = null;
 
 		try {
-			// Step 1: Prepare translations in smaller chunks
-			if ($translations) {
+			let translationReferenceId = null;
+
+			// Step 1: Save translations if they exist
+			if ($translations && Object.keys($translations).length > 0) {
 				updateSteps('translations');
-				const languages = Object.keys($translations);
-				const chunkSize = 5;
 
-				for (let i = 0; i < languages.length; i += chunkSize) {
-					const chunk = languages.slice(i, i + chunkSize);
-					const chunkTranslations = {};
-					chunk.forEach((lang) => {
-						chunkTranslations[lang] = $translations[lang];
-					});
+				const translationResponse = await fetch('/api/save-translations', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ translations: $translations })
+				});
 
-					const translationResponse = await fetch('/api/save-translations', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ translations: chunkTranslations })
-					});
-
-					if (!translationResponse.ok) {
-						throw new Error('Failed to save translations chunk');
-					}
+				if (!translationResponse.ok) {
+					const error = await translationResponse.json();
+					throw new Error(error.error || 'Failed to save translations');
 				}
+
+				const translationData = await translationResponse.json();
+				translationReferenceId = translationData.referenceId;
 			}
 
-			// Step 2: Create repository
+			// Step 2: Create repository and commit files
 			updateSteps('create', ['translations']);
 			const response = await fetch('/api/commit-component', {
 				method: 'POST',
@@ -98,13 +94,10 @@
 				body: JSON.stringify({
 					repoName,
 					mapConfig: $mapConfig,
-					translations: $translations
-				}),
-				// Set a longer timeout
-				signal: AbortSignal.timeout(60000) // 60 seconds timeout
+					translationReferenceId
+				})
 			});
 
-			// Handle potential timeout or error
 			if (!response.ok) {
 				const contentType = response.headers.get('content-type');
 				if (contentType && contentType.includes('application/json')) {
@@ -143,18 +136,11 @@
 			successMessage = 'Successfully deployed!';
 
 			if (data.languageStats) {
-				successMessage += ` All ${data.languageStats.processedCount} language files were processed.`;
+				successMessage += ` ${data.languageStats.processedCount} language files were processed.`;
 			}
 		} catch (error) {
 			console.error('Error details:', error);
 			errorMessage = error.message;
-
-			// Check if it's a timeout error
-			if (error.name === 'AbortError') {
-				errorMessage =
-					'The operation timed out. Please try again with fewer languages or contact support.';
-			}
-
 			updateSteps(null);
 		} finally {
 			isLoading = false;

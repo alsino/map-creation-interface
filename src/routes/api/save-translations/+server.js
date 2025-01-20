@@ -34,15 +34,19 @@ export async function POST({ request }) {
 			);
 		}
 
-		// Save URL map
-		await put('languages/url-map.json', JSON.stringify(urlMap), {
+		// Generate a reference ID using timestamp and random string
+		const referenceId = `trans_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+		// Save URL map with reference ID
+		await put(`references/${referenceId}.json`, JSON.stringify(urlMap), {
 			contentType: 'application/json',
 			access: 'public'
 		});
 
 		return json({
 			status: 'success',
-			urlMap
+			referenceId,
+			languageCount: languages.length
 		});
 	} catch (error) {
 		console.error('Error saving translations:', error);

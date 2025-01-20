@@ -155,7 +155,7 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 
 export async function POST({ request }) {
 	try {
-		const { repoName, mapConfig, translations } = await request.json();
+		const { repoName, mapConfig, translationReferenceId } = await request.json();
 
 		if (!GITHUB_TOKEN) {
 			return json({ error: 'GitHub token not configured' }, { status: 500 });
@@ -180,10 +180,30 @@ export async function POST({ request }) {
 		// Setup repository
 		await setupRepository(octokit, user, repoName, mapConfig);
 
-		// Commit language files (if any)
-		let languageStats = null;
-		if (translations) {
-			languageStats = await commitLanguageFiles(octokit, user, repoName, translations);
+		// If we have a translation reference, fetch and process translations
+		if (translationReferenceId) {
+			try {
+				const response = await fetch(
+					`${process.env.VERCEL_URL}/references/${translationReferenceId}.json`
+				);
+				if (!response.ok) {
+					throw new Error('Failed to fetch translations reference');
+				}
+				const urlMap = await response.json();
+
+				// Process each translation URL
+				for (const [lang, url] of Object.entries(urlMap)) {
+					const translationResponse = await fetch(url);
+					if (!translationResponse.ok) {
+						throw new Error(`Failed to fetch translation for ${lang}`);
+					}
+					const content = await translationResponse.json();
+					await commitLanguageFile(octokit, user, repoName, lang, JSON.stringify(content));
+				}
+			} catch (error) {
+				console.error('Error processing translations:', error);
+				throw new Error('Failed to process translations: ' + error.message);
+			}
 		}
 
 		// Trigger deployment
