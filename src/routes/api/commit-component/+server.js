@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { Octokit } from '@octokit/rest';
 import { GITHUB_TOKEN } from '$env/static/private';
+import { get } from '@vercel/blob';
 
 // Constants
 const MAX_RETRIES = 3;
@@ -183,32 +184,35 @@ export async function POST({ request }) {
 		// If we have a translation reference, fetch and process translations
 		if (translationReferenceId) {
 			try {
-				// Fetch the reference file from blob storage
-				const { get } = await import('@vercel/blob');
-				const urlMapResponse = await get(`references/${translationReferenceId}.json`);
+				console.log('Fetching translations for reference:', translationReferenceId);
 
-				if (!urlMapResponse) {
+				const urlMapBlob = await get(`references/${translationReferenceId}.json`);
+				if (!urlMapBlob) {
 					throw new Error('Translation reference not found');
 				}
 
-				const urlMap = JSON.parse(await urlMapResponse.text());
-				console.log('Retrieved URL map:', urlMap);
+				const urlMapText = await urlMapBlob.text();
+				console.log('URL map raw text:', urlMapText);
 
-				// Process each translation URL
+				const urlMap = JSON.parse(urlMapText);
+				console.log('Parsed URL map:', urlMap);
+
 				let processedCount = 0;
 				const totalLanguages = Object.keys(urlMap).length;
 
 				for (const [lang, url] of Object.entries(urlMap)) {
-					console.log(`Processing ${lang} from URL: ${url}`);
-					const translationResponse = await fetch(url);
+					console.log(`Processing ${lang} translation from ${url}`);
 
-					if (!translationResponse.ok) {
-						throw new Error(`Failed to fetch translation for ${lang}`);
+					const translationBlob = await get(url);
+					if (!translationBlob) {
+						throw new Error(`Translation file not found for ${lang}`);
 					}
 
-					const content = await translationResponse.json();
+					const content = JSON.parse(await translationBlob.text());
 					await commitLanguageFile(octokit, user, repoName, lang, JSON.stringify(content, null, 2));
 					processedCount++;
+
+					console.log(`Successfully processed ${lang} (${processedCount}/${totalLanguages})`);
 
 					// Add a small delay between files
 					if (processedCount < totalLanguages) {
