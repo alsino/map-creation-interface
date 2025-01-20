@@ -58,92 +58,90 @@
 		}));
 	}
 
+	// Add this to your handleSubmit function
 	async function handleSubmit() {
 		isLoading = true;
 		errorMessage = null;
 		successMessage = null;
 		repoUrl = null;
-		updateSteps('validate');
 
 		try {
-			// Get values from stores
-			const configValue = $mapConfig;
-			const translationsValue = $translations;
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
 
-			// Validate data
-			validateData(repoName, configValue, translationsValue);
-
-			// Prepare request data
-			const requestData = {
-				repoName,
-				mapConfig: configValue,
-				translations: translationsValue
-			};
-
-			// Log request data for debugging
-			console.log('Sending request with data:', JSON.stringify(requestData, null, 2));
-
-			updateSteps('create', ['validate']);
-
-			// Create repository and commit files
 			const response = await fetch('/api/commit-component', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(requestData)
+				headers: {
+					'Content-Type': 'application/json',
+					Accept: 'application/json'
+				},
+				body: JSON.stringify({
+					repoName,
+					mapConfig: $mapConfig,
+					translations: $translations
+				}),
+				signal: controller.signal
 			});
 
-			// Log raw response for debugging
-			const responseText = await response.text();
-			console.log('Raw response:', responseText);
-
-			// Parse response
-			let data;
-			try {
-				data = JSON.parse(responseText);
-			} catch (e) {
-				throw new Error(`Failed to parse response: ${responseText}`);
-			}
+			clearTimeout(timeoutId);
 
 			if (!response.ok) {
-				throw new Error(data.error || 'Failed to create repository');
+				const text = await response.text();
+				try {
+					const data = JSON.parse(text);
+					throw new Error(data.error || 'Failed to create repository');
+				} catch (e) {
+					throw new Error(`Server error: ${text}`);
+				}
 			}
 
+			const data = await response.json();
 			repoUrl = data.repoUrl;
 
-			if (data.warnings) {
-				console.warn(data.warnings);
-				successMessage = `${data.message}\n\nWarning: ${data.warnings}`;
-			}
+			// Handle deployment
+			try {
+				const deployController = new AbortController();
+				const deployTimeoutId = setTimeout(() => deployController.abort(), 15000);
 
-			updateSteps('deploy', ['validate', 'create', 'config']);
+				const deployResponse = await fetch('/api/deploy-vercel', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ repoName }),
+					signal: deployController.signal
+				});
 
-			// Deploy to Vercel
-			const deployResponse = await fetch('/api/deploy-vercel', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ repoName })
-			});
+				clearTimeout(deployTimeoutId);
 
-			const deployData = await deployResponse.json();
-			if (!deployResponse.ok) {
-				throw new Error(deployData.error || 'Failed to deploy to Vercel');
-			}
+				const deployData = await deployResponse.json();
+				if (!deployResponse.ok) {
+					throw new Error(deployData.error || 'Failed to deploy to Vercel');
+				}
 
-			deploymentUrl = `${deployData.projectUrl}?view=fullscreen`;
-			embedUrl = `${deployData.projectUrl}`;
+				deploymentUrl = `${deployData.projectUrl}?view=fullscreen`;
+				embedUrl = `${deployData.projectUrl}`;
 
-			updateSteps(
-				null,
-				steps.map((step) => step.id)
-			);
-
-			if (!successMessage) {
+				// All steps completed
+				steps = steps.map((step) => ({ ...step, completed: true, current: false }));
 				successMessage = 'Successfully deployed!';
+			} catch (deployError) {
+				console.error('Deploy error:', deployError);
+				successMessage =
+					'Repository created, but deployment failed. You can deploy manually from the repository.';
+				steps = steps.map((step) => ({
+					...step,
+					completed: step.id !== 'deploy',
+					current: false
+				}));
 			}
 		} catch (error) {
-			console.error('Deployment error:', error);
-			errorMessage = error.message;
-			updateSteps(null);
+			console.error('Error:', error);
+			errorMessage =
+				error.name === 'AbortError'
+					? 'Request timed out. The operation might still complete in the background.'
+					: error.message;
+			steps = steps.map((step) => ({ ...step, current: false }));
 		} finally {
 			isLoading = false;
 		}
