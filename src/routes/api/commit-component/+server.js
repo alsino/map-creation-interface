@@ -1,19 +1,32 @@
 import { json } from '@sveltejs/kit';
 import { Octokit } from '@octokit/rest';
 import { GITHUB_TOKEN } from '$env/static/private';
-import { put } from '@vercel/blob';
+import { put, get } from '@vercel/blob';
 
 // Constants
-const MAX_RETRIES = 2;
-const RETRY_DELAY = 1000;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1500;
 const REPO_CREATION_WAIT = 2000;
-const BATCH_SIZE = 5; // Process translations in batches
+const BATCH_SIZE = 5;
 
-// Save translations to blob storage in batches
-async function saveTranslationsToBlob(translations) {
+// Utility function for retrying operations
+async function retryOperation(operation, retries = MAX_RETRIES) {
+	for (let i = 0; i < retries; i++) {
+		try {
+			return await operation();
+		} catch (error) {
+			console.error(`Retry attempt ${i + 1} failed:`, error);
+			if (i === retries - 1) throw error;
+			await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+		}
+	}
+}
+// Save translations to blob storage and ensure they are fully saved
+async function saveAndRetrieveTranslations(translations) {
 	try {
 		const urlMap = {};
 		const languages = Object.keys(translations);
+		const retrievedTranslations = {};
 
 		// Process translations in batches
 		for (let i = 0; i < languages.length; i += BATCH_SIZE) {
@@ -21,13 +34,20 @@ async function saveTranslationsToBlob(translations) {
 			await Promise.all(
 				batch.map(async (lang) => {
 					try {
+						// Save translation to blob
 						const blob = await put(`languages/${lang}.json`, JSON.stringify(translations[lang]), {
 							contentType: 'application/json',
 							access: 'public'
 						});
 						urlMap[lang] = blob.url;
+
+						// Immediately retrieve to verify and populate retrievedTranslations
+						const retrievedBlob = await get(blob.url);
+						const content = await retrievedBlob.text();
+						retrievedTranslations[lang] = JSON.parse(content);
 					} catch (error) {
-						console.error(`Error saving translation for ${lang}:`, error);
+						console.error(`Error processing translation for ${lang}:`, error);
+						throw error; // Fail fast if any language fails
 					}
 				})
 			);
@@ -39,22 +59,10 @@ async function saveTranslationsToBlob(translations) {
 			access: 'public'
 		});
 
-		return urlMap;
+		return { urlMap, retrievedTranslations };
 	} catch (error) {
-		console.error('Error in saveTranslationsToBlob:', error);
+		console.error('Error in saveAndRetrieveTranslations:', error);
 		throw error;
-	}
-}
-
-// Utility function for retrying operations
-async function retryOperation(operation, retries = MAX_RETRIES) {
-	for (let i = 0; i < retries; i++) {
-		try {
-			return await operation();
-		} catch (error) {
-			if (i === retries - 1) throw error;
-			await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
-		}
 	}
 }
 
@@ -112,7 +120,6 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 	return true;
 }
 
-// Commit language files with controlled parallel processing
 // Commit language files sequentially to ensure all files are processed
 async function commitLanguageFiles(octokit, user, repoName, translations) {
 	const languages = Object.keys(translations);
@@ -145,8 +152,7 @@ async function commitLanguageFiles(octokit, user, repoName, translations) {
 			});
 		} catch (error) {
 			console.error(`Failed to commit language file ${lang}:`, error);
-			// Optionally, you could choose to throw the error to stop processing
-			// or continue with the next language file
+			throw error; // Fail if any language file commit fails
 		}
 	}
 }
@@ -175,62 +181,51 @@ export async function POST({ request }) {
 		const octokit = new Octokit({ auth: GITHUB_TOKEN });
 		const { data: user } = await octokit.users.getAuthenticated();
 
-		// Improved logging for tracking
+		// Log start of process
 		console.log(`Starting repository setup for: ${repoName}`);
 
-		// Step 1: Save translations to blob storage (don't wait)
-		const translationPromise = translations
-			? saveTranslationsToBlob(translations)
-			: Promise.resolve(null);
+		// Step 1: Save translations to blob storage and retrieve them
+		let urlMap = null;
+		let retrievedTranslations = null;
+		if (translations) {
+			const result = await saveAndRetrieveTranslations(translations);
+			urlMap = result.urlMap;
+			retrievedTranslations = result.retrievedTranslations;
+		}
 
 		// Step 2: Setup repository
 		await setupRepository(octokit, user, repoName, mapConfig);
 		console.log(`Repository setup complete for: ${repoName}`);
 
-		// Step 3: Commit language files (if any)
-		if (translations) {
-			await commitLanguageFiles(octokit, user, repoName, translations);
+		// Step 3: Commit language files (using retrieved translations)
+		if (retrievedTranslations) {
+			await commitLanguageFiles(octokit, user, repoName, retrievedTranslations);
 			console.log(`Language files committed for: ${repoName}`);
 		}
 
-		// Step 4: Get translation URLs (if applicable)
-		const urlMap = await translationPromise;
-
-		// Step 5: Trigger deployment with extended timeout and error handling
+		// Step 4: Trigger deployment
 		try {
-			// Increase timeout for deployment trigger
-			const deploymentController = new AbortController();
-			const timeoutId = setTimeout(() => deploymentController.abort(), 30000); // 30-second timeout
-
 			await retryOperation(async () => {
-				try {
-					await octokit.repos.createDispatchEvent({
-						owner: user.login,
-						repo: repoName,
-						event_type: 'deployment',
-						// Optional: You can pass additional data if needed
-						client_payload: {
-							initiated_at: new Date().toISOString()
-						}
-					});
-					clearTimeout(timeoutId);
-				} catch (deployError) {
-					clearTimeout(timeoutId);
-					console.error('Deployment trigger failed:', deployError);
-					throw deployError;
-				}
-			}, 3); // Increase retry attempts for deployment
+				await octokit.repos.createDispatchEvent({
+					owner: user.login,
+					repo: repoName,
+					event_type: 'deployment',
+					client_payload: {
+						initiated_at: new Date().toISOString()
+					}
+				});
+			});
 
 			console.log(`Deployment triggered for: ${repoName}`);
 		} catch (deploymentError) {
-			console.error('Persistent deployment trigger failure:', deploymentError);
+			console.error('Deployment trigger failed:', deploymentError);
 			return json(
 				{
 					error: 'Failed to trigger deployment',
 					details: deploymentError.message,
 					status: 'error'
 				},
-				{ status: 502 } // Use 502 Bad Gateway to indicate deployment issues
+				{ status: 502 }
 			);
 		}
 
