@@ -61,35 +61,29 @@ async function commitLanguageFile(octokit, user, repoName, lang, content, maxRet
 async function commitLanguageFiles(octokit, user, repoName, translations) {
 	const languages = Object.keys(translations);
 	let processedCount = 0;
-	const CHUNK_SIZE = 5;
 
-	// Process languages in smaller chunks
-	for (let i = 0; i < languages.length; i += CHUNK_SIZE) {
-		const chunk = languages.slice(i, Math.min(i + CHUNK_SIZE, languages.length));
+	for (let i = 0; i < languages.length; i++) {
+		const lang = languages[i];
+		const content = JSON.stringify(translations[lang], null, 2);
 
-		// Process each language in the chunk
-		for (const lang of chunk) {
-			const content = JSON.stringify(translations[lang], null, 2);
+		try {
 			await commitLanguageFile(octokit, user, repoName, lang, content);
 			processedCount++;
 			console.log(`Successfully processed ${lang} (${processedCount}/${languages.length})`);
 
 			// Small delay between files
 			if (processedCount < languages.length) {
-				await new Promise((resolve) => setTimeout(resolve, 500));
+				await new Promise((resolve) => setTimeout(resolve, 1000));
 			}
-		}
-
-		// Larger delay between chunks
-		if (i + CHUNK_SIZE < languages.length) {
-			await new Promise((resolve) => setTimeout(resolve, 2000));
+		} catch (error) {
+			// If any file fails, throw an error to stop the process
+			throw new Error(`Failed to process ${lang}: ${error.message}`);
 		}
 	}
 
 	return { processedCount, totalLanguages: languages.length };
 }
 
-// Utility function for retrying operations
 async function retryOperation(operation, retries = MAX_RETRIES) {
 	for (let i = 0; i < retries; i++) {
 		try {
@@ -162,7 +156,6 @@ export async function POST({ request }) {
 			return json({ error: 'GitHub token not configured' }, { status: 500 });
 		}
 
-		// Validate repository name
 		const repoNameRegex = /^[a-zA-Z0-9-_]+$/;
 		if (!repoNameRegex.test(repoName)) {
 			return json(
@@ -174,7 +167,6 @@ export async function POST({ request }) {
 			);
 		}
 
-		// Initialize Octokit
 		const octokit = new Octokit({ auth: GITHUB_TOKEN });
 		const { data: user } = await octokit.users.getAuthenticated();
 
@@ -182,6 +174,7 @@ export async function POST({ request }) {
 		await setupRepository(octokit, user, repoName, mapConfig);
 
 		// If we have a translation reference, fetch and process translations
+		let languageStats = null;
 		if (translationReferenceId) {
 			try {
 				console.log('Fetching translations for reference:', translationReferenceId);
