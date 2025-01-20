@@ -7,7 +7,7 @@ import { put } from '@vercel/blob';
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
 const REPO_CREATION_WAIT = 2000;
-const BATCH_SIZE = 5; // Process translations in batches
+const BATCH_SIZE = 10; // Process translations in batches of 10
 
 // Save translations to blob storage in batches
 async function saveTranslationsToBlob(translations) {
@@ -112,12 +112,18 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 	return true;
 }
 
-// Commit language files in batches
+// Commit language files in batches with progress tracking
 async function commitLanguageFiles(octokit, user, repoName, translations) {
 	const languages = Object.keys(translations);
+	let processedCount = 0;
+	const totalFiles = languages.length;
 
 	for (let i = 0; i < languages.length; i += BATCH_SIZE) {
-		const batch = languages.slice(i, i + BATCH_SIZE);
+		const batch = languages.slice(i, Math.min(i + BATCH_SIZE, languages.length));
+		console.log(
+			`Processing batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(languages.length / BATCH_SIZE)}`
+		);
+
 		await Promise.all(
 			batch.map(async (lang) => {
 				const content = JSON.stringify(translations[lang], null, 2);
@@ -145,11 +151,19 @@ async function commitLanguageFiles(octokit, user, repoName, translations) {
 						sha,
 						branch: 'main'
 					});
+
+					processedCount++;
+					console.log(`Processed ${processedCount}/${totalFiles} language files`);
 				} catch (error) {
 					console.error(`Failed to commit language file ${lang}:`, error);
 				}
 			})
 		);
+
+		// Add a small delay between batches to avoid rate limiting
+		if (i + BATCH_SIZE < languages.length) {
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+		}
 	}
 }
 
@@ -206,7 +220,8 @@ export async function POST({ request }) {
 			message: 'Repository created and configured successfully',
 			status: 'success',
 			repoUrl: `https://github.com/${user.login}/${repoName}`,
-			translationUrls: urlMap
+			translationUrls: urlMap,
+			processedLanguages: Object.keys(translations).length
 		});
 	} catch (error) {
 		console.error('Error:', error);
