@@ -112,48 +112,42 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 	return true;
 }
 
-// Commit language files in batches
 // Commit language files with controlled parallel processing
+// Commit language files sequentially to ensure all files are processed
 async function commitLanguageFiles(octokit, user, repoName, translations) {
 	const languages = Object.keys(translations);
-	const BATCH_SIZE = 5; // Adjust as needed
 
-	for (let i = 0; i < languages.length; i += BATCH_SIZE) {
-		const batch = languages.slice(i, i + BATCH_SIZE);
+	for (const lang of languages) {
+		try {
+			const content = JSON.stringify(translations[lang], null, 2);
+			const path = `static/languages/${lang}.json`;
 
-		// Process each batch sequentially
-		await Promise.all(
-			batch.map(async (lang) => {
-				try {
-					const content = JSON.stringify(translations[lang], null, 2);
-					const path = `static/languages/${lang}.json`;
+			let sha;
+			try {
+				const { data: existingFile } = await octokit.repos.getContent({
+					owner: user.login,
+					repo: repoName,
+					path
+				});
+				sha = existingFile.sha;
+			} catch (error) {
+				// File doesn't exist yet, no SHA needed
+			}
 
-					let sha;
-					try {
-						const { data: existingFile } = await octokit.repos.getContent({
-							owner: user.login,
-							repo: repoName,
-							path
-						});
-						sha = existingFile.sha;
-					} catch (error) {
-						// File doesn't exist yet, no SHA needed
-					}
-
-					await octokit.repos.createOrUpdateFileContents({
-						owner: user.login,
-						repo: repoName,
-						path,
-						message: `Add language file: ${lang}`,
-						content: Buffer.from(content).toString('base64'),
-						sha,
-						branch: 'main'
-					});
-				} catch (error) {
-					console.error(`Failed to commit language file ${lang}:`, error);
-				}
-			})
-		);
+			await octokit.repos.createOrUpdateFileContents({
+				owner: user.login,
+				repo: repoName,
+				path,
+				message: `Add language file: ${lang}`,
+				content: Buffer.from(content).toString('base64'),
+				sha,
+				branch: 'main'
+			});
+		} catch (error) {
+			console.error(`Failed to commit language file ${lang}:`, error);
+			// Optionally, you could choose to throw the error to stop processing
+			// or continue with the next language file
+		}
 	}
 }
 
