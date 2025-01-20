@@ -66,12 +66,14 @@ export async function POST({ request }) {
 	try {
 		// Save translations to blob storage if in main app
 		if (translations) {
-			try {
-				await saveTranslationsToBlob(translations);
-			} catch (error) {
-				console.error('Error saving to blob storage:', error);
-				// Continue with repository creation even if blob storage fails
-			}
+			const urlMap = await saveTranslationsToBlob(translations);
+			console.log('Translation URLs:', urlMap);
+
+			// Save the URL map to blob storage as well
+			await put('languages/url-map.json', JSON.stringify(urlMap), {
+				contentType: 'application/json',
+				access: 'public'
+			});
 		}
 
 		const octokit = new Octokit({ auth: GITHUB_TOKEN });

@@ -3,12 +3,25 @@ import { json } from '@sveltejs/kit';
 export async function GET({ params }) {
 	try {
 		const lang = params.lang;
-		// Note: The URL will be returned by the put function when saving
-		// We'll need to store these URLs or construct them in a consistent way
-		const response = await fetch(`${process.env.NEXT_PUBLIC_BLOB_BASE_URL}/languages/${lang}.json`);
 
-		if (!response.ok) {
+		// First get the URL map
+		const urlMapResponse = await fetch(
+			`${process.env.NEXT_PUBLIC_BLOB_BASE_URL}/languages/url-map.json`
+		);
+		if (!urlMapResponse.ok) {
+			throw new Error('Failed to load URL map');
+		}
+
+		const urlMap = await urlMapResponse.json();
+		const translationUrl = urlMap[lang];
+
+		if (!translationUrl) {
 			return json({ error: `No translation found for ${lang}` }, { status: 404 });
+		}
+
+		const response = await fetch(translationUrl);
+		if (!response.ok) {
+			throw new Error(`Failed to load translation from ${translationUrl}`);
 		}
 
 		const content = await response.json();
