@@ -1,6 +1,6 @@
 <script>
 	import { mapConfig } from '$lib/stores/config-map';
-	import { translations } from '$lib/stores/translations'; // Add this import
+	import { translations } from '$lib/stores/translations';
 
 	let repoName = '';
 	let errorMessage = null;
@@ -25,7 +25,6 @@
 		return `<iframe title="New Map" aria-label="Map" id="${slugifiedId}" src="${deployUrl}" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="624"></iframe><script type="text/javascript">window.addEventListener("message",e=>{if("${embedUrl}"!==e.origin)return;let t=e.data;if(t.height){document.getElementById("${slugifiedId}").height=t.height+"px"}},!1)<\/script>`;
 	}
 
-	// Updated steps to include translation saving
 	let steps = [
 		{ id: 'validate', text: 'Validating repository name', completed: false, current: false },
 		{ id: 'translations', text: 'Saving translations', completed: false, current: false },
@@ -34,62 +33,89 @@
 		{ id: 'deploy', text: 'Deploying to Vercel', completed: false, current: false }
 	];
 
+	function validateData(repoName, mapConfig, translations) {
+		if (!repoName) throw new Error('Repository name is required');
+		if (!mapConfig) throw new Error('Map configuration is required');
+
+		// Ensure translations is an object if present
+		if (translations && typeof translations !== 'object') {
+			throw new Error('Invalid translations format');
+		}
+
+		// Validate repository name format
+		if (!/^[a-zA-Z0-9-_]+$/.test(repoName)) {
+			throw new Error(
+				'Invalid repository name. Use only letters, numbers, hyphens, and underscores.'
+			);
+		}
+	}
+
+	function updateSteps(currentStep, completedSteps = []) {
+		steps = steps.map((step) => ({
+			...step,
+			completed: completedSteps.includes(step.id),
+			current: step.id === currentStep
+		}));
+	}
+
 	async function handleSubmit() {
 		isLoading = true;
 		errorMessage = null;
 		successMessage = null;
 		repoUrl = null;
-		steps = steps.map((step) => ({ ...step, completed: false, current: false }));
+		updateSteps('validate');
 
 		try {
-			// Validation step
-			steps = steps.map((step) => ({
-				...step,
-				current: step.id === 'validate'
-			}));
+			// Get values from stores
+			const configValue = $mapConfig;
+			const translationsValue = $translations;
 
-			if (!/^[a-zA-Z0-9-_]+$/.test(repoName)) {
-				throw new Error(
-					'Invalid repository name. Use only letters, numbers, hyphens, and underscores.'
-				);
-			}
+			// Validate data
+			validateData(repoName, configValue, translationsValue);
 
-			// Move to create repository step
-			steps = steps.map((step) => ({
-				...step,
-				completed: step.id === 'validate',
-				current: step.id === 'create'
-			}));
+			// Prepare request data
+			const requestData = {
+				repoName,
+				mapConfig: configValue,
+				translations: translationsValue
+			};
+
+			// Log request data for debugging
+			console.log('Sending request with data:', JSON.stringify(requestData, null, 2));
+
+			updateSteps('create', ['validate']);
 
 			// Create repository and commit files
 			const response = await fetch('/api/commit-component', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					repoName,
-					mapConfig: $mapConfig,
-					translations: $translations // Add translations to the request
-				})
+				body: JSON.stringify(requestData)
 			});
 
-			const data = await response.json();
-			if (!response.ok) throw new Error(data.error || 'Failed to create repository');
+			// Log raw response for debugging
+			const responseText = await response.text();
+			console.log('Raw response:', responseText);
+
+			// Parse response
+			let data;
+			try {
+				data = JSON.parse(responseText);
+			} catch (e) {
+				throw new Error(`Failed to parse response: ${responseText}`);
+			}
+
+			if (!response.ok) {
+				throw new Error(data.error || 'Failed to create repository');
+			}
 
 			repoUrl = data.repoUrl;
 
-			// Check for warnings in the response
 			if (data.warnings) {
 				console.warn(data.warnings);
-				// Optionally show warnings to the user
 				successMessage = `${data.message}\n\nWarning: ${data.warnings}`;
 			}
 
-			// Update steps for deployment
-			steps = steps.map((step) => ({
-				...step,
-				completed: ['validate', 'create', 'config'].includes(step.id),
-				current: step.id === 'deploy'
-			}));
+			updateSteps('deploy', ['validate', 'create', 'config']);
 
 			// Deploy to Vercel
 			const deployResponse = await fetch('/api/deploy-vercel', {
@@ -99,31 +125,32 @@
 			});
 
 			const deployData = await deployResponse.json();
-			if (!deployResponse.ok) throw new Error(deployData.error || 'Failed to deploy to Vercel');
+			if (!deployResponse.ok) {
+				throw new Error(deployData.error || 'Failed to deploy to Vercel');
+			}
 
 			deploymentUrl = `${deployData.projectUrl}?view=fullscreen`;
 			embedUrl = `${deployData.projectUrl}`;
 
-			// All steps completed
-			steps = steps.map((step) => ({
-				...step,
-				completed: true,
-				current: false
-			}));
+			updateSteps(
+				null,
+				steps.map((step) => step.id)
+			);
 
 			if (!successMessage) {
-				// Only set if not already set by warnings
 				successMessage = 'Successfully deployed!';
 			}
 		} catch (error) {
+			console.error('Deployment error:', error);
 			errorMessage = error.message;
-			steps = steps.map((step) => ({ ...step, current: false }));
+			updateSteps(null);
 		} finally {
 			isLoading = false;
 		}
 	}
 </script>
 
+<!-- Rest of your component template remains the same -->
 <div class="rounded-lg bg-white p-6 text-left shadow-sm">
 	<h3 class="mb-2 font-bold">Create Map</h3>
 	<form on:submit|preventDefault={handleSubmit} class="space-y-4">
@@ -176,7 +203,6 @@
 		</div>
 	{/if}
 
-	<!-- Modified success message section with embed code -->
 	{#if successMessage}
 		<div class="mt-4 rounded bg-green-50 p-4 text-green-700">
 			<p class="font-bold">Success</p>
@@ -193,7 +219,6 @@
 					</p>
 				{/if}
 
-				<!-- New embed code section -->
 				{#if deploymentUrl}
 					<div class="mt-4">
 						<p class="mb-2 font-bold">Embed code:</p>
@@ -214,6 +239,7 @@
 						</div>
 					</div>
 				{/if}
+
 				{#if repoUrl}
 					<p>
 						<a href={repoUrl} target="_blank" rel="noopener noreferrer" class="underline"

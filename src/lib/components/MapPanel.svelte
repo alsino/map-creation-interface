@@ -49,20 +49,6 @@
 		return false;
 	}
 
-	// // Add this function near the top of your script
-	// async function loadTranslationFile(lang) {
-	// 	try {
-	// 		const response = await fetch(`/languages/${lang}.json`);
-	// 		if (!response.ok) {
-	// 			throw new Error(`Failed to load language file: ${response.statusText}`);
-	// 		}
-	// 		return await response.json();
-	// 	} catch (error) {
-	// 		console.error(`Error loading translation for ${lang}:`, error);
-	// 		return null;
-	// 	}
-	// }
-
 	async function loadTranslationFile(lang) {
 		try {
 			const isSubApp = window.location.search.includes('view=fullscreen');

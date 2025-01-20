@@ -24,43 +24,78 @@ async function retryOperation(operation, retries = MAX_RETRIES) {
 
 // Save translations to blob storage and return URLs
 async function saveTranslationsToBlob(translations) {
-	const urlMap = {};
+	try {
+		const urlMap = {};
 
-	for (const [lang, content] of Object.entries(translations)) {
-		const blob = await put(`languages/${lang}.json`, JSON.stringify(content), {
+		for (const [lang, content] of Object.entries(translations)) {
+			try {
+				const contentString = JSON.stringify(content);
+				console.log(
+					`Saving translation for ${lang}, content:`,
+					contentString.slice(0, 100) + '...'
+				);
+
+				const blob = await put(`languages/${lang}.json`, contentString, {
+					contentType: 'application/json',
+					access: 'public'
+				});
+				urlMap[lang] = blob.url;
+			} catch (error) {
+				console.error(`Error saving translation for ${lang}:`, error);
+				throw new Error(`Failed to save translation for ${lang}: ${error.message}`);
+			}
+		}
+
+		console.log('Saving URL map:', urlMap);
+		await put('languages/url-map.json', JSON.stringify(urlMap), {
 			contentType: 'application/json',
 			access: 'public'
 		});
-		urlMap[lang] = blob.url;
+
+		return urlMap;
+	} catch (error) {
+		console.error('Error in saveTranslationsToBlob:', error);
+		throw error;
 	}
-
-	// Save URL map
-	await put('languages/url-map.json', JSON.stringify(urlMap), {
-		contentType: 'application/json',
-		access: 'public'
-	});
-
-	return urlMap;
 }
 
 // Get translations from blob storage
 async function getTranslationsFromBlob() {
 	try {
+		console.log('Fetching URL map from blob storage...');
 		const urlMapResponse = await get('languages/url-map.json');
-		if (!urlMapResponse) return null;
+		if (!urlMapResponse) {
+			console.log('No URL map found in blob storage');
+			return null;
+		}
 
-		const urlMap = JSON.parse(await urlMapResponse.text());
+		const urlMapText = await urlMapResponse.text();
+		console.log('URL map text:', urlMapText);
+		const urlMap = JSON.parse(urlMapText);
+		console.log('Parsed URL map:', urlMap);
+
 		const translations = {};
 
 		for (const [lang, url] of Object.entries(urlMap)) {
-			const response = await fetch(url);
-			translations[lang] = await response.json();
+			try {
+				console.log(`Fetching translation for ${lang} from ${url}`);
+				const response = await fetch(url);
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
+				const text = await response.text();
+				console.log(`Raw response for ${lang}:`, text.slice(0, 100) + '...');
+				translations[lang] = JSON.parse(text);
+			} catch (error) {
+				console.error(`Error fetching translation for ${lang}:`, error);
+				throw error;
+			}
 		}
 
 		return translations;
 	} catch (error) {
-		console.error('Error fetching translations from blob:', error);
-		return null;
+		console.error('Error in getTranslationsFromBlob:', error);
+		throw error;
 	}
 }
 
@@ -110,7 +145,24 @@ async function commitLanguageFiles(octokit, user, repoName, mapConfig, translati
 }
 
 export async function POST({ request }) {
-	const { repoName, mapConfig, translations } = await request.json();
+	let requestBody;
+	try {
+		const text = await request.text();
+		console.log('Request body:', text);
+		requestBody = JSON.parse(text);
+	} catch (error) {
+		console.error('Error parsing request body:', error);
+		return json(
+			{
+				error: 'Invalid JSON in request body',
+				status: 'error',
+				details: error.message
+			},
+			{ status: 400 }
+		);
+	}
+
+	const { repoName, mapConfig, translations } = requestBody;
 
 	// Validate inputs
 	if (!GITHUB_TOKEN) {
