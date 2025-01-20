@@ -10,6 +10,7 @@ export async function saveTranslationsToBlob(translations) {
 				access: 'public'
 			});
 			savedFiles.push({ lang, url });
+			console.log(`Saved ${lang} translation to URL:`, url); // Add this log
 		}
 
 		return savedFiles;
