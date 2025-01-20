@@ -58,7 +58,6 @@
 		}));
 	}
 
-	// Add this to your handleSubmit function
 	async function handleSubmit() {
 		isLoading = true;
 		errorMessage = null;
@@ -66,82 +65,73 @@
 		repoUrl = null;
 
 		try {
-			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+			// Step 1: Save translations first
+			if ($translations) {
+				updateSteps('translations');
+				const translationResponse = await fetch('/api/save-translations', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ translations: $translations })
+				});
 
+				if (!translationResponse.ok) {
+					const error = await translationResponse.json();
+					throw new Error(error.error || 'Failed to save translations');
+				}
+			}
+
+			// Step 2: Create repository and commit files
+			updateSteps('create', ['translations']);
 			const response = await fetch('/api/commit-component', {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Accept: 'application/json'
-				},
+				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					repoName,
 					mapConfig: $mapConfig,
 					translations: $translations
-				}),
-				signal: controller.signal
+				})
 			});
 
-			clearTimeout(timeoutId);
-
 			if (!response.ok) {
-				const text = await response.text();
-				try {
-					const data = JSON.parse(text);
-					throw new Error(data.error || 'Failed to create repository');
-				} catch (e) {
-					throw new Error(`Server error: ${text}`);
-				}
+				const error = await response.json();
+				throw new Error(error.error || 'Failed to create repository');
 			}
 
 			const data = await response.json();
 			repoUrl = data.repoUrl;
 
-			// Handle deployment
-			try {
-				const deployController = new AbortController();
-				const deployTimeoutId = setTimeout(() => deployController.abort(), 15000);
+			// Step 3: Deploy to Vercel
+			updateSteps('deploy', ['translations', 'create', 'config']);
+			const deployResponse = await fetch('/api/deploy-vercel', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ repoName })
+			});
 
-				const deployResponse = await fetch('/api/deploy-vercel', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({ repoName }),
-					signal: deployController.signal
-				});
+			const deployData = await deployResponse.json();
+			if (!deployResponse.ok) {
+				throw new Error(deployData.error || 'Failed to deploy to Vercel');
+			}
 
-				clearTimeout(deployTimeoutId);
+			deploymentUrl = `${deployData.projectUrl}?view=fullscreen`;
+			embedUrl = `${deployData.projectUrl}`;
 
-				const deployData = await deployResponse.json();
-				if (!deployResponse.ok) {
-					throw new Error(deployData.error || 'Failed to deploy to Vercel');
+			updateSteps(
+				null,
+				steps.map((step) => step.id)
+			);
+			successMessage = 'Successfully deployed!';
+
+			if (data.languageStats) {
+				successMessage += ` Processed ${data.languageStats.processedCount} language files.`;
+				if (data.languageStats.failed.length > 0) {
+					successMessage += ` Failed to process: ${data.languageStats.failed.join(', ')}`;
 				}
-
-				deploymentUrl = `${deployData.projectUrl}?view=fullscreen`;
-				embedUrl = `${deployData.projectUrl}`;
-
-				// All steps completed
-				steps = steps.map((step) => ({ ...step, completed: true, current: false }));
-				successMessage = 'Successfully deployed!';
-			} catch (deployError) {
-				console.error('Deploy error:', deployError);
-				successMessage =
-					'Repository created, but deployment failed. You can deploy manually from the repository.';
-				steps = steps.map((step) => ({
-					...step,
-					completed: step.id !== 'deploy',
-					current: false
-				}));
 			}
 		} catch (error) {
 			console.error('Error:', error);
-			errorMessage =
-				error.name === 'AbortError'
-					? 'Request timed out. The operation might still complete in the background.'
-					: error.message;
-			steps = steps.map((step) => ({ ...step, current: false }));
+			errorMessage = error.message;
+			updateSteps(null);
 		} finally {
 			isLoading = false;
 		}
