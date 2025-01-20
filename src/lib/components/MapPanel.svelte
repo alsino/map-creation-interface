@@ -112,8 +112,17 @@
 	}
 
 	// Your reactive statement stays the same
+	// $: if ($translations && Object.keys($translations).length > 0 && $selectedLanguage?.value) {
+	// 	getLanguage($selectedLanguage.value);
+	// }
+
+	// To this:
 	$: if ($translations && Object.keys($translations).length > 0 && $selectedLanguage?.value) {
-		getLanguage($selectedLanguage.value);
+		const isSubApp = window.location.search.includes('view=fullscreen');
+		if (!isSubApp) {
+			// Only trigger for main app
+			getLanguage($selectedLanguage.value);
+		}
 	}
 
 	// Get the view parameter from the page store
@@ -129,14 +138,31 @@
 	$: dropdownLanguages = languageNameTranslations['en'];
 	$: $isMobile = innerWidth <= $mobileSize;
 
+	// onMount(async () => {
+	// 	await fetchAndTransformGeoData();
+	// 	// await getLanguage($selectedLanguage.value);
+
+	// 	if ($mapConfig.translate) {
+	// 		translations.set({
+	// 			en: $mapConfig.translate // Assuming 'en' is your default language
+	// 		});
+	// 	}
+	// });
+
 	onMount(async () => {
 		await fetchAndTransformGeoData();
-		// await getLanguage($selectedLanguage.value);
+		const isSubApp = window.location.search.includes('view=fullscreen');
 
-		if ($mapConfig.translate) {
-			translations.set({
-				en: $mapConfig.translate // Assuming 'en' is your default language
-			});
+		if (isSubApp) {
+			// In sub-app, load translations immediately
+			await getLanguage($selectedLanguage?.value || 'en');
+		} else {
+			// In main app, set initial translations
+			if ($mapConfig.translate) {
+				translations.set({
+					en: $mapConfig.translate
+				});
+			}
 		}
 	});
 
@@ -148,7 +174,7 @@
 
 			let data;
 			const isSubApp = window.location.search.includes('view=fullscreen');
-			console.log('Is sub app:', isSubApp); // Add this log to verify
+			console.log('Is sub app:', isSubApp, 'Loading language:', lang);
 
 			if (isSubApp) {
 				// In deployed sub-app, load from static files
@@ -160,48 +186,55 @@
 			} else {
 				// In main app, use the store
 				data = $translations[lang];
-				console.log($translations);
 				if (!data) {
 					console.warn('No translation data found for language:', lang);
 					return;
 				}
 			}
 
+			console.log('Loaded translation data:', data);
+
 			// Create the new config object
 			const newConfig = {
 				...$mapConfig,
-				title: data.title || '',
-				subtitle: data.subtitle || '',
-				textSourceDescription: data.textSourceDescription || '',
-				textSource: data.textSource || '',
-				textNoteDescription: data.textNoteDescription || '',
-				textNote: data.textNote || '',
-				linkDataAccessDescription: data.linkDataAccessDescription || '',
-				legend1: data.legend1 || '',
-				customUnitLabel: data.customUnitLabel || '',
-				tooltipExtraInfoLabel: data.tooltipExtraInfoLabel || '',
+				title: data.title || $mapConfig.title || '',
+				subtitle: data.subtitle || $mapConfig.subtitle || '',
+				textSourceDescription: data.textSourceDescription || $mapConfig.textSourceDescription || '',
+				textSource: data.textSource || $mapConfig.textSource || '',
+				textNoteDescription: data.textNoteDescription || $mapConfig.textNoteDescription || '',
+				textNote: data.textNote || $mapConfig.textNote || '',
+				linkDataAccessDescription:
+					data.linkDataAccessDescription || $mapConfig.linkDataAccessDescription || '',
+				legend1: data.legend1 || $mapConfig.legend1 || '',
+				customUnitLabel: data.customUnitLabel || $mapConfig.customUnitLabel || '',
+				tooltipExtraInfoLabel: data.tooltipExtraInfoLabel || $mapConfig.tooltipExtraInfoLabel || '',
 				translate: {
-					title: data.title || '',
-					subtitle: data.subtitle || '',
-					textNoteDescription: data.textNoteDescription || '',
-					textNote: data.textNote || '',
-					textSourceDescription: data.textSourceDescription || '',
-					textSource: data.textSource || '',
-					linkDataAccessDescription: data.linkDataAccessDescription || '',
-					legend1: data.legend1 || '',
-					tooltipExtraInfoLabel: data.tooltipExtraInfoLabel || ''
+					title: data.title || $mapConfig.translate?.title || '',
+					subtitle: data.subtitle || $mapConfig.translate?.subtitle || '',
+					textNoteDescription:
+						data.textNoteDescription || $mapConfig.translate?.textNoteDescription || '',
+					textNote: data.textNote || $mapConfig.translate?.textNote || '',
+					textSourceDescription:
+						data.textSourceDescription || $mapConfig.translate?.textSourceDescription || '',
+					textSource: data.textSource || $mapConfig.translate?.textSource || '',
+					linkDataAccessDescription:
+						data.linkDataAccessDescription || $mapConfig.translate?.linkDataAccessDescription || '',
+					legend1: data.legend1 || $mapConfig.translate?.legend1 || '',
+					tooltipExtraInfoLabel:
+						data.tooltipExtraInfoLabel || $mapConfig.translate?.tooltipExtraInfoLabel || ''
 				}
 			};
 
 			// Extract and add extraInfo entries
 			const extraInfoEntries = Object.keys(data).filter((key) => key.startsWith('extraInfo_'));
 			extraInfoEntries.forEach((key) => {
-				newConfig[key] = data[key] || '';
-				newConfig.translate[key] = data[key] || '';
+				newConfig[key] = data[key] || $mapConfig[key] || '';
+				newConfig.translate[key] = data[key] || $mapConfig.translate?.[key] || '';
 			});
 
 			// Update the store
 			mapConfig.set(newConfig);
+			shouldUpdateMap.set(true);
 
 			// Update tooltips
 			tooltipEntries = Object.keys(data).filter((item) => item.includes('tooltip'));
@@ -218,10 +251,93 @@
 			console.error('Error in getLanguage:', error);
 			console.error('Current state:', {
 				selectedLanguage: lang,
-				mapConfig: $mapConfig
+				mapConfig: $mapConfig,
+				isSubApp: window.location.search.includes('view=fullscreen')
 			});
+			shouldUpdateMap.set(true); // Make sure to reset this even on error
 		}
 	}
+
+	// async function getLanguage(lang) {
+	// 	try {
+	// 		shouldUpdateMap.set(false);
+
+	// 		let data;
+	// 		const isSubApp = window.location.search.includes('view=fullscreen');
+	// 		console.log('Is sub app:', isSubApp); // Add this log to verify
+
+	// 		if (isSubApp) {
+	// 			// In deployed sub-app, load from static files
+	// 			data = await loadTranslationFile(lang);
+	// 			if (!data) {
+	// 				console.warn('No translation file found for language:', lang);
+	// 				return;
+	// 			}
+	// 		} else {
+	// 			// In main app, use the store
+	// 			data = $translations[lang];
+	// 			console.log($translations);
+	// 			if (!data) {
+	// 				console.warn('No translation data found for language:', lang);
+	// 				return;
+	// 			}
+	// 		}
+
+	// 		// Create the new config object
+	// 		const newConfig = {
+	// 			...$mapConfig,
+	// 			title: data.title || '',
+	// 			subtitle: data.subtitle || '',
+	// 			textSourceDescription: data.textSourceDescription || '',
+	// 			textSource: data.textSource || '',
+	// 			textNoteDescription: data.textNoteDescription || '',
+	// 			textNote: data.textNote || '',
+	// 			linkDataAccessDescription: data.linkDataAccessDescription || '',
+	// 			legend1: data.legend1 || '',
+	// 			customUnitLabel: data.customUnitLabel || '',
+	// 			tooltipExtraInfoLabel: data.tooltipExtraInfoLabel || '',
+	// 			translate: {
+	// 				title: data.title || '',
+	// 				subtitle: data.subtitle || '',
+	// 				textNoteDescription: data.textNoteDescription || '',
+	// 				textNote: data.textNote || '',
+	// 				textSourceDescription: data.textSourceDescription || '',
+	// 				textSource: data.textSource || '',
+	// 				linkDataAccessDescription: data.linkDataAccessDescription || '',
+	// 				legend1: data.legend1 || '',
+	// 				tooltipExtraInfoLabel: data.tooltipExtraInfoLabel || ''
+	// 			}
+	// 		};
+
+	// 		// Extract and add extraInfo entries
+	// 		const extraInfoEntries = Object.keys(data).filter((key) => key.startsWith('extraInfo_'));
+	// 		extraInfoEntries.forEach((key) => {
+	// 			newConfig[key] = data[key] || '';
+	// 			newConfig.translate[key] = data[key] || '';
+	// 		});
+
+	// 		// Update the store
+	// 		mapConfig.set(newConfig);
+
+	// 		// Update tooltips
+	// 		tooltipEntries = Object.keys(data).filter((item) => item.includes('tooltip'));
+	// 		tooltip = tooltipEntries.map((item) => ({
+	// 			[item]: data[item],
+	// 			label: data[item],
+	// 			textCountryClick: data.textCountryClick || ''
+	// 		}));
+
+	// 		// Extra Info
+	// 		extraInfoTexts = filterAndReduceExtraInfo(data, 'extraInfoText');
+	// 		extraInfoLinks = filterAndReduceExtraInfo(data, 'extraInfoLink');
+	// 	} catch (error) {
+	// 		console.error('Error in getLanguage:', error);
+	// 		console.error('Current state:', {
+	// 			selectedLanguage: lang,
+	// 			mapConfig: $mapConfig
+	// 		});
+	// 	}
+	// }
 
 	// Fixed filterAndReduceExtraInfo function
 	function filterAndReduceExtraInfo(data, filterTerm) {
