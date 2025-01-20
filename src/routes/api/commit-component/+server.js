@@ -175,6 +175,9 @@ export async function POST({ request }) {
 		const octokit = new Octokit({ auth: GITHUB_TOKEN });
 		const { data: user } = await octokit.users.getAuthenticated();
 
+		// Improved logging for tracking
+		console.log(`Starting repository setup for: ${repoName}`);
+
 		// Step 1: Save translations to blob storage (don't wait)
 		const translationPromise = translations
 			? saveTranslationsToBlob(translations)
@@ -182,23 +185,54 @@ export async function POST({ request }) {
 
 		// Step 2: Setup repository
 		await setupRepository(octokit, user, repoName, mapConfig);
+		console.log(`Repository setup complete for: ${repoName}`);
 
 		// Step 3: Commit language files (if any)
 		if (translations) {
 			await commitLanguageFiles(octokit, user, repoName, translations);
+			console.log(`Language files committed for: ${repoName}`);
 		}
 
 		// Step 4: Get translation URLs (if applicable)
 		const urlMap = await translationPromise;
 
-		// Step 5: Trigger deployment
-		await retryOperation(async () => {
-			await octokit.repos.createDispatchEvent({
-				owner: user.login,
-				repo: repoName,
-				event_type: 'deployment'
-			});
-		});
+		// Step 5: Trigger deployment with extended timeout and error handling
+		try {
+			// Increase timeout for deployment trigger
+			const deploymentController = new AbortController();
+			const timeoutId = setTimeout(() => deploymentController.abort(), 30000); // 30-second timeout
+
+			await retryOperation(async () => {
+				try {
+					await octokit.repos.createDispatchEvent({
+						owner: user.login,
+						repo: repoName,
+						event_type: 'deployment',
+						// Optional: You can pass additional data if needed
+						client_payload: {
+							initiated_at: new Date().toISOString()
+						}
+					});
+					clearTimeout(timeoutId);
+				} catch (deployError) {
+					clearTimeout(timeoutId);
+					console.error('Deployment trigger failed:', deployError);
+					throw deployError;
+				}
+			}, 3); // Increase retry attempts for deployment
+
+			console.log(`Deployment triggered for: ${repoName}`);
+		} catch (deploymentError) {
+			console.error('Persistent deployment trigger failure:', deploymentError);
+			return json(
+				{
+					error: 'Failed to trigger deployment',
+					details: deploymentError.message,
+					status: 'error'
+				},
+				{ status: 502 } // Use 502 Bad Gateway to indicate deployment issues
+			);
+		}
 
 		return json({
 			message: 'Repository created and configured successfully',
@@ -207,12 +241,16 @@ export async function POST({ request }) {
 			translationUrls: urlMap
 		});
 	} catch (error) {
-		console.error('Error:', error);
+		console.error('Critical error in repository setup:', error);
 		return json(
 			{
 				error: error.message || 'Failed to create repository',
 				status: 'error',
-				details: error.response?.data?.errors
+				details: {
+					message: error.message,
+					response: error.response?.data?.errors,
+					stack: error.stack
+				}
 			},
 			{ status: error.status || 500 }
 		);
