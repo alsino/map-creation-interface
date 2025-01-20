@@ -1,8 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { Octokit } from '@octokit/rest';
 import { GITHUB_TOKEN } from '$env/static/private';
-import { readdir, readFile, writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 import { put, get } from '@vercel/blob';
 
 // Constants
@@ -66,56 +64,48 @@ async function getTranslationsFromBlob() {
 	}
 }
 
-// Handle language files
-async function handleLanguageFiles(octokit, user, repoName, mapConfig, translations) {
-	const languagesDir = join(process.cwd(), 'static', 'languages');
-	await mkdir(languagesDir, { recursive: true });
+// Handle language files directly in GitHub
+async function commitLanguageFiles(octokit, user, repoName, mapConfig, translations) {
+	// Prepare language files in memory
+	const languageFiles = new Map();
 
-	// Save English translation
+	// Add English translation
 	if (mapConfig.translate) {
-		const filePath = join(languagesDir, 'en.json');
-		await writeFile(filePath, JSON.stringify(mapConfig.translate, null, 2), 'utf-8');
+		languageFiles.set('static/languages/en.json', JSON.stringify(mapConfig.translate, null, 2));
 	}
 
-	// Save other translations
+	// Add other translations
 	if (translations) {
 		for (const [lang, content] of Object.entries(translations)) {
-			const filePath = join(languagesDir, `${lang}.json`);
-			await writeFile(filePath, JSON.stringify(content, null, 2), 'utf-8');
+			languageFiles.set(`static/languages/${lang}.json`, JSON.stringify(content, null, 2));
 		}
 	}
 
-	// Commit language files
-	const files = await readdir(languagesDir, { withFileTypes: true });
-	for (const file of files) {
-		if (!file.isDirectory()) {
-			const path = `static/languages/${file.name}`;
-			const content = await readFile(join(languagesDir, file.name), 'utf-8');
-
-			await retryOperation(async () => {
-				let sha;
-				try {
-					const { data: existingFile } = await octokit.repos.getContent({
-						owner: user.login,
-						repo: repoName,
-						path
-					});
-					sha = existingFile.sha;
-				} catch (error) {
-					// File doesn't exist yet
-				}
-
-				await octokit.repos.createOrUpdateFileContents({
+	// Commit each language file
+	for (const [path, content] of languageFiles) {
+		await retryOperation(async () => {
+			let sha;
+			try {
+				const { data: existingFile } = await octokit.repos.getContent({
 					owner: user.login,
 					repo: repoName,
-					path,
-					message: `Add/update language file: ${file.name}`,
-					content: Buffer.from(content).toString('base64'),
-					sha,
-					branch: 'main'
+					path
 				});
+				sha = existingFile.sha;
+			} catch (error) {
+				// File doesn't exist yet, that's fine
+			}
+
+			await octokit.repos.createOrUpdateFileContents({
+				owner: user.login,
+				repo: repoName,
+				path,
+				message: `Add/update language file: ${path.split('/').pop()}`,
+				content: Buffer.from(content).toString('base64'),
+				sha,
+				branch: 'main'
 			});
-		}
+		});
 	}
 }
 
@@ -186,10 +176,6 @@ export async function POST({ request }) {
 		await new Promise((resolve) => setTimeout(resolve, REPO_CREATION_WAIT));
 
 		// 6. Update config-map.js
-		const configMapContent = `import { writable } from 'svelte/store';
-
-export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
-
 		const { data: currentFile } = await retryOperation(async () => {
 			return await octokit.repos.getContent({
 				owner: user.login,
@@ -197,6 +183,10 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 				path: 'src/lib/stores/config-map.js'
 			});
 		});
+
+		const configMapContent = `import { writable } from 'svelte/store';
+
+export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 
 		await retryOperation(async () => {
 			await octokit.repos.createOrUpdateFileContents({
@@ -211,7 +201,7 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 		});
 
 		// 7. Handle language files
-		await handleLanguageFiles(octokit, user, repoName, mapConfig, translations);
+		await commitLanguageFiles(octokit, user, repoName, mapConfig, translations);
 
 		// 8. Trigger Vercel deployment
 		await retryOperation(async () => {
