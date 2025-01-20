@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { Octokit } from '@octokit/rest';
 import { GITHUB_TOKEN } from '$env/static/private';
-import { get } from '@vercel/blob';
+import * as blob from '@vercel/blob';
 
 // Constants
 const MAX_RETRIES = 3;
@@ -61,29 +61,35 @@ async function commitLanguageFile(octokit, user, repoName, lang, content, maxRet
 async function commitLanguageFiles(octokit, user, repoName, translations) {
 	const languages = Object.keys(translations);
 	let processedCount = 0;
+	const CHUNK_SIZE = 5;
 
-	for (let i = 0; i < languages.length; i++) {
-		const lang = languages[i];
-		const content = JSON.stringify(translations[lang], null, 2);
+	// Process languages in smaller chunks
+	for (let i = 0; i < languages.length; i += CHUNK_SIZE) {
+		const chunk = languages.slice(i, Math.min(i + CHUNK_SIZE, languages.length));
 
-		try {
+		// Process each language in the chunk
+		for (const lang of chunk) {
+			const content = JSON.stringify(translations[lang], null, 2);
 			await commitLanguageFile(octokit, user, repoName, lang, content);
 			processedCount++;
 			console.log(`Successfully processed ${lang} (${processedCount}/${languages.length})`);
 
 			// Small delay between files
 			if (processedCount < languages.length) {
-				await new Promise((resolve) => setTimeout(resolve, 1000));
+				await new Promise((resolve) => setTimeout(resolve, 500));
 			}
-		} catch (error) {
-			// If any file fails, throw an error to stop the process
-			throw new Error(`Failed to process ${lang}: ${error.message}`);
+		}
+
+		// Larger delay between chunks
+		if (i + CHUNK_SIZE < languages.length) {
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 		}
 	}
 
 	return { processedCount, totalLanguages: languages.length };
 }
 
+// Utility function for retrying operations
 async function retryOperation(operation, retries = MAX_RETRIES) {
 	for (let i = 0; i < retries; i++) {
 		try {
@@ -156,6 +162,7 @@ export async function POST({ request }) {
 			return json({ error: 'GitHub token not configured' }, { status: 500 });
 		}
 
+		// Validate repository name
 		const repoNameRegex = /^[a-zA-Z0-9-_]+$/;
 		if (!repoNameRegex.test(repoName)) {
 			return json(
@@ -167,6 +174,7 @@ export async function POST({ request }) {
 			);
 		}
 
+		// Initialize Octokit
 		const octokit = new Octokit({ auth: GITHUB_TOKEN });
 		const { data: user } = await octokit.users.getAuthenticated();
 
@@ -174,12 +182,11 @@ export async function POST({ request }) {
 		await setupRepository(octokit, user, repoName, mapConfig);
 
 		// If we have a translation reference, fetch and process translations
-		let languageStats = null;
 		if (translationReferenceId) {
 			try {
 				console.log('Fetching translations for reference:', translationReferenceId);
 
-				const urlMapBlob = await get(`references/${translationReferenceId}.json`);
+				const urlMapBlob = await blob.get(`references/${translationReferenceId}.json`);
 				if (!urlMapBlob) {
 					throw new Error('Translation reference not found');
 				}
@@ -196,7 +203,7 @@ export async function POST({ request }) {
 				for (const [lang, url] of Object.entries(urlMap)) {
 					console.log(`Processing ${lang} translation from ${url}`);
 
-					const translationBlob = await get(url);
+					const translationBlob = await blob.get(url);
 					if (!translationBlob) {
 						throw new Error(`Translation file not found for ${lang}`);
 					}

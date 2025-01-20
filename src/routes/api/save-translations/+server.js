@@ -1,5 +1,6 @@
+// src/routes/api/save-translations/+server.js
 import { json } from '@sveltejs/kit';
-import { put } from '@vercel/blob';
+import * as blob from '@vercel/blob';
 
 const BATCH_SIZE = 10;
 
@@ -22,13 +23,13 @@ export async function POST({ request }) {
 		for (let i = 0; i < languages.length; i += BATCH_SIZE) {
 			const batch = languages.slice(i, Math.min(i + BATCH_SIZE, languages.length));
 			console.log(
-				`Processing batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(languages.length / BATCH_SIZE)}`
+				`Processing batch ${i / BATCH_SIZE + 1} of ${Math.ceil(languages.length / BATCH_SIZE)}`
 			);
 
 			await Promise.all(
 				batch.map(async (lang) => {
 					try {
-						const blobResponse = await put(
+						const blobResponse = await blob.put(
 							`translations/${referenceId}/${lang}.json`,
 							JSON.stringify(translations[lang], null, 2),
 							{
@@ -37,7 +38,7 @@ export async function POST({ request }) {
 							}
 						);
 						urlMap[lang] = blobResponse.url;
-						console.log(`Saved ${lang} translation to ${blobResponse.url}`);
+						console.log(`Saved ${lang} translation to ${blob.url}`);
 					} catch (error) {
 						console.error(`Error saving translation for ${lang}:`, error);
 						throw error;
@@ -47,7 +48,7 @@ export async function POST({ request }) {
 		}
 
 		// Save URL map
-		const mapBlobResponse = await put(
+		const mapBlobResponse = await blob.put(
 			`references/${referenceId}.json`,
 			JSON.stringify(urlMap, null, 2),
 			{
@@ -61,7 +62,7 @@ export async function POST({ request }) {
 		return json({
 			status: 'success',
 			referenceId,
-			referenceUrl: mapBlobResponse.url,
+			referenceUrl: mapBlob.url,
 			languageCount: languages.length
 		});
 	} catch (error) {
