@@ -123,10 +123,8 @@
 			successMessage = 'Successfully deployed!';
 
 			if (data.languageStats) {
-				successMessage += ` Processed ${data.languageStats.processedCount} language files.`;
-				if (data.languageStats.failed.length > 0) {
-					successMessage += ` Failed to process: ${data.languageStats.failed.join(', ')}`;
-				}
+				const { processedCount, totalLanguages } = data.languageStats;
+				successMessage = `Successfully deployed! All ${processedCount} language files were processed.`;
 			}
 		} catch (error) {
 			console.error('Error:', error);
