@@ -1,12 +1,50 @@
 import { json } from '@sveltejs/kit';
 import { Octokit } from '@octokit/rest';
 import { GITHUB_TOKEN } from '$env/static/private';
+import { put } from '@vercel/blob';
 
 // Constants
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
 const REPO_CREATION_WAIT = 2000;
-const BATCH_SIZE = 5;
+const BATCH_SIZE = 5; // Process translations in batches
+
+// Save translations to blob storage in batches
+async function saveTranslationsToBlob(translations) {
+	try {
+		const urlMap = {};
+		const languages = Object.keys(translations);
+
+		// Process translations in batches
+		for (let i = 0; i < languages.length; i += BATCH_SIZE) {
+			const batch = languages.slice(i, i + BATCH_SIZE);
+			await Promise.all(
+				batch.map(async (lang) => {
+					try {
+						const blob = await put(`languages/${lang}.json`, JSON.stringify(translations[lang]), {
+							contentType: 'application/json',
+							access: 'public'
+						});
+						urlMap[lang] = blob.url;
+					} catch (error) {
+						console.error(`Error saving translation for ${lang}:`, error);
+					}
+				})
+			);
+		}
+
+		// Save URL map
+		await put('languages/url-map.json', JSON.stringify(urlMap), {
+			contentType: 'application/json',
+			access: 'public'
+		});
+
+		return urlMap;
+	} catch (error) {
+		console.error('Error in saveTranslationsToBlob:', error);
+		throw error;
+	}
+}
 
 // Utility function for retrying operations
 async function retryOperation(operation, retries = MAX_RETRIES) {
@@ -20,6 +58,7 @@ async function retryOperation(operation, retries = MAX_RETRIES) {
 	}
 }
 
+// Create and configure repository
 async function setupRepository(octokit, user, repoName, mapConfig) {
 	// Delete existing repo if needed
 	try {
@@ -73,18 +112,12 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 	return true;
 }
 
+// Commit language files in batches
 async function commitLanguageFiles(octokit, user, repoName, translations) {
 	const languages = Object.keys(translations);
-	let processedCount = 0;
 
-	// Process in batches
 	for (let i = 0; i < languages.length; i += BATCH_SIZE) {
-		const batch = languages.slice(i, Math.min(i + BATCH_SIZE, languages.length));
-		console.log(
-			`Processing batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(languages.length / BATCH_SIZE)}`
-		);
-
-		// Process files in current batch
+		const batch = languages.slice(i, i + BATCH_SIZE);
 		await Promise.all(
 			batch.map(async (lang) => {
 				const content = JSON.stringify(translations[lang], null, 2);
@@ -112,20 +145,12 @@ async function commitLanguageFiles(octokit, user, repoName, translations) {
 						sha,
 						branch: 'main'
 					});
-					processedCount++;
 				} catch (error) {
-					console.error(`Failed to commit ${lang}:`, error);
+					console.error(`Failed to commit language file ${lang}:`, error);
 				}
 			})
 		);
-
-		// Add delay between batches
-		if (i + BATCH_SIZE < languages.length) {
-			await new Promise((resolve) => setTimeout(resolve, 2000));
-		}
 	}
-
-	return { processedCount, totalLanguages: languages.length };
 }
 
 export async function POST({ request }) {
@@ -136,6 +161,7 @@ export async function POST({ request }) {
 			return json({ error: 'GitHub token not configured' }, { status: 500 });
 		}
 
+		// Validate repository name
 		const repoNameRegex = /^[a-zA-Z0-9-_]+$/;
 		if (!repoNameRegex.test(repoName)) {
 			return json(
@@ -147,19 +173,27 @@ export async function POST({ request }) {
 			);
 		}
 
+		// Initialize Octokit
 		const octokit = new Octokit({ auth: GITHUB_TOKEN });
 		const { data: user } = await octokit.users.getAuthenticated();
 
-		// Setup repository
+		// Step 1: Save translations to blob storage (don't wait)
+		const translationPromise = translations
+			? saveTranslationsToBlob(translations)
+			: Promise.resolve(null);
+
+		// Step 2: Setup repository
 		await setupRepository(octokit, user, repoName, mapConfig);
 
-		// Commit language files if provided
-		let languageStats = null;
+		// Step 3: Commit language files (if any)
 		if (translations) {
-			languageStats = await commitLanguageFiles(octokit, user, repoName, translations);
+			await commitLanguageFiles(octokit, user, repoName, translations);
 		}
 
-		// Trigger deployment
+		// Step 4: Get translation URLs (if applicable)
+		const urlMap = await translationPromise;
+
+		// Step 5: Trigger deployment
 		await retryOperation(async () => {
 			await octokit.repos.createDispatchEvent({
 				owner: user.login,
@@ -172,7 +206,7 @@ export async function POST({ request }) {
 			message: 'Repository created and configured successfully',
 			status: 'success',
 			repoUrl: `https://github.com/${user.login}/${repoName}`,
-			languageStats
+			translationUrls: urlMap
 		});
 	} catch (error) {
 		console.error('Error:', error);
