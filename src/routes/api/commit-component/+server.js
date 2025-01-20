@@ -3,37 +3,126 @@ import { Octokit } from '@octokit/rest';
 import { GITHUB_TOKEN } from '$env/static/private';
 import { readdir, readFile, writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
-import ignore from 'ignore';
-import { execSync } from 'child_process';
-import { put } from '@vercel/blob';
-import { saveTranslationsToBlob } from '$lib/utils/blobStorage';
+import { put, get } from '@vercel/blob';
 
-// Add back the getLanguageFiles function
-async function getLanguageFiles() {
-	const languageFiles = new Map();
-	const languagesDir = join(process.cwd(), 'static', 'languages');
+// Constants
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 2000;
+const REPO_CREATION_WAIT = 5000;
+const TEMPLATE_OWNER = 'alsino';
+const TEMPLATE_REPO = 'map-creation-interface';
 
-	try {
-		const entries = await readdir(languagesDir, { withFileTypes: true });
-
-		for (const entry of entries) {
-			if (!entry.isDirectory()) {
-				const path = join(languagesDir, entry.name);
-				const content = await readFile(path, 'utf-8');
-				// Set the path relative to the repo root
-				languageFiles.set(`static/languages/${entry.name}`, content);
-			}
+// Utility function for retrying operations
+async function retryOperation(operation, retries = MAX_RETRIES) {
+	for (let i = 0; i < retries; i++) {
+		try {
+			return await operation();
+		} catch (error) {
+			if (i === retries - 1) throw error;
+			await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
 		}
-	} catch (error) {
-		console.error('Error reading language files:', error);
+	}
+}
+
+// Save translations to blob storage and return URLs
+async function saveTranslationsToBlob(translations) {
+	const urlMap = {};
+
+	for (const [lang, content] of Object.entries(translations)) {
+		const blob = await put(`languages/${lang}.json`, JSON.stringify(content), {
+			contentType: 'application/json',
+			access: 'public'
+		});
+		urlMap[lang] = blob.url;
 	}
 
-	return languageFiles;
+	// Save URL map
+	await put('languages/url-map.json', JSON.stringify(urlMap), {
+		contentType: 'application/json',
+		access: 'public'
+	});
+
+	return urlMap;
+}
+
+// Get translations from blob storage
+async function getTranslationsFromBlob() {
+	try {
+		const urlMapResponse = await get('languages/url-map.json');
+		if (!urlMapResponse) return null;
+
+		const urlMap = JSON.parse(await urlMapResponse.text());
+		const translations = {};
+
+		for (const [lang, url] of Object.entries(urlMap)) {
+			const response = await fetch(url);
+			translations[lang] = await response.json();
+		}
+
+		return translations;
+	} catch (error) {
+		console.error('Error fetching translations from blob:', error);
+		return null;
+	}
+}
+
+// Handle language files
+async function handleLanguageFiles(octokit, user, repoName, mapConfig, translations) {
+	const languagesDir = join(process.cwd(), 'static', 'languages');
+	await mkdir(languagesDir, { recursive: true });
+
+	// Save English translation
+	if (mapConfig.translate) {
+		const filePath = join(languagesDir, 'en.json');
+		await writeFile(filePath, JSON.stringify(mapConfig.translate, null, 2), 'utf-8');
+	}
+
+	// Save other translations
+	if (translations) {
+		for (const [lang, content] of Object.entries(translations)) {
+			const filePath = join(languagesDir, `${lang}.json`);
+			await writeFile(filePath, JSON.stringify(content, null, 2), 'utf-8');
+		}
+	}
+
+	// Commit language files
+	const files = await readdir(languagesDir, { withFileTypes: true });
+	for (const file of files) {
+		if (!file.isDirectory()) {
+			const path = `static/languages/${file.name}`;
+			const content = await readFile(join(languagesDir, file.name), 'utf-8');
+
+			await retryOperation(async () => {
+				let sha;
+				try {
+					const { data: existingFile } = await octokit.repos.getContent({
+						owner: user.login,
+						repo: repoName,
+						path
+					});
+					sha = existingFile.sha;
+				} catch (error) {
+					// File doesn't exist yet
+				}
+
+				await octokit.repos.createOrUpdateFileContents({
+					owner: user.login,
+					repo: repoName,
+					path,
+					message: `Add/update language file: ${file.name}`,
+					content: Buffer.from(content).toString('base64'),
+					sha,
+					branch: 'main'
+				});
+			});
+		}
+	}
 }
 
 export async function POST({ request }) {
 	const { repoName, mapConfig, translations } = await request.json();
 
+	// Validate inputs
 	if (!GITHUB_TOKEN) {
 		return json({ error: 'GitHub token not configured' }, { status: 500 });
 	}
@@ -49,78 +138,43 @@ export async function POST({ request }) {
 		);
 	}
 
-	const MAX_RETRIES = 3;
-	const RETRY_DELAY = 2000;
-	const REPO_CREATION_WAIT = 5000;
-
-	async function retryOperation(operation, retries = MAX_RETRIES) {
-		for (let i = 0; i < retries; i++) {
-			try {
-				return await operation();
-			} catch (error) {
-				if (i === retries - 1) throw error;
-				await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
-			}
-		}
-	}
+	const octokit = new Octokit({ auth: GITHUB_TOKEN });
 
 	try {
-		// Save translations to blob storage if in main app
+		// 1. Save translations to blob storage
+		let urlMap;
 		if (translations) {
-			const urlMap = await saveTranslationsToBlob(translations);
+			urlMap = await saveTranslationsToBlob(translations);
 			console.log('Translation URLs:', urlMap);
-
-			// Save the URL map to blob storage as well
-			await put('languages/url-map.json', JSON.stringify(urlMap), {
-				contentType: 'application/json',
-				access: 'public'
-			});
 		}
 
-		const octokit = new Octokit({ auth: GITHUB_TOKEN });
+		// 2. Get GitHub user
 		const { data: user } = await octokit.users.getAuthenticated();
 
-		// Template repository check
-		try {
+		// 3. Verify template repository
+		await retryOperation(async () => {
 			await octokit.repos.get({
-				owner: 'alsino',
-				repo: 'map-creation-interface'
+				owner: TEMPLATE_OWNER,
+				repo: TEMPLATE_REPO
 			});
-		} catch (error) {
-			return json(
-				{
-					error: 'Template repository not found',
-					status: 'error',
-					details: 'Please ensure the template repository exists'
-				},
-				{ status: 404 }
-			);
-		}
+		});
 
-		// Check and delete existing repo if needed
+		// 4. Handle existing repository
 		try {
-			await octokit.repos.get({
+			await octokit.repos.delete({
 				owner: user.login,
 				repo: repoName
 			});
-
-			await retryOperation(async () => {
-				await octokit.repos.delete({
-					owner: user.login,
-					repo: repoName
-				});
-			});
-
 			await new Promise((resolve) => setTimeout(resolve, 2000));
 		} catch (error) {
 			if (error.status !== 404) throw error;
 		}
 
-		// Create repository using template
+		// 5. Create new repository
 		await retryOperation(async () => {
 			await octokit.repos.createUsingTemplate({
-				template_owner: 'alsino',
-				template_repo: 'map-creation-interface',
+				template_owner: TEMPLATE_OWNER,
+				template_repo: TEMPLATE_REPO,
 				owner: user.login,
 				name: repoName,
 				private: false,
@@ -129,132 +183,51 @@ export async function POST({ request }) {
 			});
 		});
 
-		// Wait for repository to be ready
 		await new Promise((resolve) => setTimeout(resolve, REPO_CREATION_WAIT));
 
-		// Get and update config-map.js
-		try {
-			const { data: currentFile } = await retryOperation(async () => {
-				return await octokit.repos.getContent({
-					owner: user.login,
-					repo: repoName,
-					path: 'src/lib/stores/config-map.js'
-				});
-			});
-
-			const configMapContent = `import { writable } from 'svelte/store';
+		// 6. Update config-map.js
+		const configMapContent = `import { writable } from 'svelte/store';
 
 export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 
-			await retryOperation(async () => {
-				await octokit.repos.createOrUpdateFileContents({
-					owner: user.login,
-					repo: repoName,
-					path: 'src/lib/stores/config-map.js',
-					message: 'Update map configuration',
-					content: Buffer.from(configMapContent).toString('base64'),
-					sha: currentFile.sha,
-					branch: 'main'
-				});
+		const { data: currentFile } = await retryOperation(async () => {
+			return await octokit.repos.getContent({
+				owner: user.login,
+				repo: repoName,
+				path: 'src/lib/stores/config-map.js'
 			});
+		});
 
-			// // For sub-apps, save translations to static files
-			// if (process.env.NODE_ENV !== 'production') {
-			// 	const languagesDir = join(process.cwd(), 'static', 'languages');
-			// 	await mkdir(languagesDir, { recursive: true });
-
-			// 	for (const [lang, content] of Object.entries(translations)) {
-			// 		const filePath = join(languagesDir, `${lang}.json`);
-			// 		await writeFile(filePath, JSON.stringify(content, null, 2), 'utf-8');
-			// 	}
-			// }
-
-			// Always save translations to static files for sub-apps
-			const languagesDir = join(process.cwd(), 'static', 'languages');
-			await mkdir(languagesDir, { recursive: true });
-
-			// Include the English translation from mapConfig.translate
-			if (mapConfig.translate) {
-				const filePath = join(languagesDir, 'en.json');
-				await writeFile(filePath, JSON.stringify(mapConfig.translate, null, 2), 'utf-8');
-			}
-
-			// Save all other translations
-			if (translations) {
-				for (const [lang, content] of Object.entries(translations)) {
-					const filePath = join(languagesDir, `${lang}.json`);
-					await writeFile(filePath, JSON.stringify(content, null, 2), 'utf-8');
-				}
-			}
-
-			// Get language files and commit them
-			const languageFiles = await getLanguageFiles();
-
-			for (const [path, content] of languageFiles) {
-				try {
-					await retryOperation(async () => {
-						let sha;
-						try {
-							const { data: existingFile } = await octokit.repos.getContent({
-								owner: user.login,
-								repo: repoName,
-								path: path
-							});
-							sha = existingFile.sha;
-						} catch (error) {
-							// File doesn't exist yet, that's okay
-						}
-
-						await octokit.repos.createOrUpdateFileContents({
-							owner: user.login,
-							repo: repoName,
-							path: path,
-							message: `Add language file: ${path}`,
-							content: Buffer.from(content).toString('base64'),
-							sha: sha,
-							branch: 'main'
-						});
-					});
-				} catch (error) {
-					console.error(`Failed to commit language file ${path}:`, error);
-				}
-			}
-
-			// Trigger Vercel deployment
-			try {
-				await retryOperation(async () => {
-					await octokit.repos.createDispatchEvent({
-						owner: user.login,
-						repo: repoName,
-						event_type: 'deployment'
-					});
-				});
-			} catch (error) {
-				return json({
-					message: 'Repository created but deployment failed',
-					status: 'warning',
-					details: error.message,
-					repoUrl: `https://github.com/${user.login}/${repoName}`
-				});
-			}
-
-			return json({
-				message: 'Repository created and configured successfully',
-				status: 'success',
-				repoUrl: `https://github.com/${user.login}/${repoName}`
+		await retryOperation(async () => {
+			await octokit.repos.createOrUpdateFileContents({
+				owner: user.login,
+				repo: repoName,
+				path: 'src/lib/stores/config-map.js',
+				message: 'Update map configuration',
+				content: Buffer.from(configMapContent).toString('base64'),
+				sha: currentFile.sha,
+				branch: 'main'
 			});
-		} catch (error) {
-			// If config update fails, delete the repository
-			try {
-				await octokit.repos.delete({
-					owner: user.login,
-					repo: repoName
-				});
-			} catch (deleteError) {
-				console.error('Failed to clean up repository after error:', deleteError);
-			}
-			throw error;
-		}
+		});
+
+		// 7. Handle language files
+		await handleLanguageFiles(octokit, user, repoName, mapConfig, translations);
+
+		// 8. Trigger Vercel deployment
+		await retryOperation(async () => {
+			await octokit.repos.createDispatchEvent({
+				owner: user.login,
+				repo: repoName,
+				event_type: 'deployment'
+			});
+		});
+
+		return json({
+			message: 'Repository created and configured successfully',
+			status: 'success',
+			repoUrl: `https://github.com/${user.login}/${repoName}`,
+			translationUrls: urlMap
+		});
 	} catch (error) {
 		console.error('Error:', error);
 		return json(
