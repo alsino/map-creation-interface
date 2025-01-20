@@ -5,6 +5,7 @@ import { readdir, readFile, writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import ignore from 'ignore';
 import { execSync } from 'child_process';
+import { put } from '@vercel/blob';
 import { saveTranslationsToBlob } from '$lib/utils/blobStorage';
 
 // Add back the getLanguageFiles function
