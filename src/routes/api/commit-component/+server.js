@@ -158,11 +158,29 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 				});
 			});
 
-			// For sub-apps, save translations to static files
-			if (process.env.NODE_ENV !== 'production') {
-				const languagesDir = join(process.cwd(), 'static', 'languages');
-				await mkdir(languagesDir, { recursive: true });
+			// // For sub-apps, save translations to static files
+			// if (process.env.NODE_ENV !== 'production') {
+			// 	const languagesDir = join(process.cwd(), 'static', 'languages');
+			// 	await mkdir(languagesDir, { recursive: true });
 
+			// 	for (const [lang, content] of Object.entries(translations)) {
+			// 		const filePath = join(languagesDir, `${lang}.json`);
+			// 		await writeFile(filePath, JSON.stringify(content, null, 2), 'utf-8');
+			// 	}
+			// }
+
+			// Always save translations to static files for sub-apps
+			const languagesDir = join(process.cwd(), 'static', 'languages');
+			await mkdir(languagesDir, { recursive: true });
+
+			// Include the English translation from mapConfig.translate
+			if (mapConfig.translate) {
+				const filePath = join(languagesDir, 'en.json');
+				await writeFile(filePath, JSON.stringify(mapConfig.translate, null, 2), 'utf-8');
+			}
+
+			// Save all other translations
+			if (translations) {
 				for (const [lang, content] of Object.entries(translations)) {
 					const filePath = join(languagesDir, `${lang}.json`);
 					await writeFile(filePath, JSON.stringify(content, null, 2), 'utf-8');
