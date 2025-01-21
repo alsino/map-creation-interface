@@ -58,41 +58,6 @@
 		}));
 	}
 
-	async function makeRequest(url, data) {
-		try {
-			const response = await fetch(url, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(data)
-			});
-
-			// First check if the response can be parsed as JSON
-			let jsonData;
-			const textData = await response.text();
-			try {
-				jsonData = JSON.parse(textData);
-			} catch (parseError) {
-				// If it's not valid JSON, and we have a 504, it's a timeout
-				if (response.status === 504) {
-					throw new Error('Operation timed out. Please try with fewer files.');
-				}
-				// For other cases, return the text as error message
-				throw new Error(textData || 'An unknown error occurred');
-			}
-
-			if (!response.ok) {
-				throw new Error(jsonData.error || 'Request failed');
-			}
-
-			return jsonData;
-		} catch (error) {
-			console.error(`Request to ${url} failed:`, error);
-			throw error;
-		}
-	}
-
 	// Add this to your handleSubmit function
 	async function handleSubmit() {
 		isLoading = true;
