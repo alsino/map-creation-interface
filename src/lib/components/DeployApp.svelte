@@ -58,6 +58,41 @@
 		}));
 	}
 
+	async function makeRequest(url, data) {
+		try {
+			const response = await fetch(url, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(data)
+			});
+
+			// First check if the response can be parsed as JSON
+			let jsonData;
+			const textData = await response.text();
+			try {
+				jsonData = JSON.parse(textData);
+			} catch (parseError) {
+				// If it's not valid JSON, and we have a 504, it's a timeout
+				if (response.status === 504) {
+					throw new Error('Operation timed out. Please try with fewer files.');
+				}
+				// For other cases, return the text as error message
+				throw new Error(textData || 'An unknown error occurred');
+			}
+
+			if (!response.ok) {
+				throw new Error(jsonData.error || 'Request failed');
+			}
+
+			return jsonData;
+		} catch (error) {
+			console.error(`Request to ${url} failed:`, error);
+			throw error;
+		}
+	}
+
 	// Add this to your handleSubmit function
 	async function handleSubmit() {
 		isLoading = true;
@@ -66,85 +101,52 @@
 		repoUrl = null;
 
 		try {
-			// Validate inputs first
-			updateSteps('validate', []);
-			validateData(repoName, $mapConfig, $translations);
+			// Initialize repository
 			updateSteps('create', ['validate']);
+			const initData = await makeRequest('/api/init-repository', {
+				repoName,
+				mapConfig: $mapConfig
+			});
+			repoUrl = initData.repoUrl;
 
-			// First API call: Initialize repository
-			try {
-				const initResponse = await fetch('/api/init-repository', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						repoName,
-						mapConfig: $mapConfig
-					})
+			// Commit files in smaller batches
+			updateSteps('translations', ['validate', 'create']);
+			const BATCH_SIZE = 2; // Reduced batch size
+			const languages = Object.keys($translations);
+			const totalBatches = Math.ceil(languages.length / BATCH_SIZE);
+
+			for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+				const start = batchIndex * BATCH_SIZE;
+				const end = Math.min(start + BATCH_SIZE, languages.length);
+				const batchLanguages = languages.slice(start, end);
+
+				const batchTranslations = {};
+				batchLanguages.forEach((lang) => {
+					batchTranslations[lang] = $translations[lang];
 				});
 
-				const initData = await initResponse.json();
-				if (!initResponse.ok) {
-					throw new Error(initData.error || 'Failed to initialize repository');
-				}
-				repoUrl = initData.repoUrl;
-				updateSteps('translations', ['validate', 'create']);
-			} catch (initError) {
-				console.error('Repository initialization error:', initError);
-				throw new Error(`Repository initialization failed: ${initError.message}`);
-			}
-
-			// Second API call: Commit files
-			try {
-				const commitResponse = await fetch('/api/commit-files', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						repoName,
-						translations: $translations
-					})
+				await makeRequest('/api/commit-files', {
+					repoName,
+					translations: batchTranslations,
+					batchIndex,
+					isLastBatch: end >= languages.length
 				});
 
-				const commitData = await commitResponse.json();
-				if (!commitResponse.ok) {
-					throw new Error(commitData.error || 'Failed to commit files');
-				}
-				updateSteps('deploy', ['validate', 'create', 'translations', 'config']);
-			} catch (commitError) {
-				console.error('File commit error:', commitError);
-				throw new Error(`File commit failed: ${commitError.message}`);
+				// Update progress
+				successMessage = `Processed ${end} of ${languages.length} languages...`;
 			}
 
-			// Third API call: Deploy to Vercel
-			try {
-				const deployResponse = await fetch('/api/deploy-vercel', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({ repoName })
-				});
+			// Deploy to Vercel
+			updateSteps('deploy', ['validate', 'create', 'translations', 'config']);
+			const deployData = await makeRequest('/api/deploy-vercel', { repoName });
 
-				const deployData = await deployResponse.json();
-				if (!deployResponse.ok) {
-					throw new Error(deployData.error || 'Failed to deploy to Vercel');
-				}
-
-				deploymentUrl = deployData.projectUrl;
-				embedUrl = deployData.projectUrl;
-				updateSteps(null, ['validate', 'create', 'translations', 'config', 'deploy']);
-				successMessage = 'Repository created and deployed successfully!';
-			} catch (deployError) {
-				console.error('Deployment error:', deployError);
-				throw new Error(`Deployment failed: ${deployError.message}`);
-			}
+			deploymentUrl = deployData.projectUrl;
+			embedUrl = deployData.projectUrl;
+			updateSteps(null, ['validate', 'create', 'translations', 'config', 'deploy']);
+			successMessage = 'Repository created and deployed successfully!';
 		} catch (error) {
-			console.error('Overall error:', error);
+			console.error('Error:', error);
 			errorMessage = error.message;
-			// Reset steps on error
 			steps = steps.map((step) => ({
 				...step,
 				completed: false,
