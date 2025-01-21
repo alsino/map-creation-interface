@@ -1,45 +1,60 @@
 import { json } from '@sveltejs/kit';
 import { Octokit } from '@octokit/rest';
+import { put, del, list } from '@vercel/blob';
 import { GITHUB_TOKEN } from '$env/static/private';
-import { put } from '@vercel/blob';
 
-// Constants
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
 const REPO_CREATION_WAIT = 2000;
-const BATCH_SIZE = 5; // Process translations in batches
+const BATCH_SIZE = 5;
 
-// Save translations to blob storage in batches
+// Utility function to clean up blob storage
+async function cleanupBlobStorage() {
+	try {
+		const { blobs } = await list();
+		await Promise.all(
+			blobs.map(async (blob) => {
+				try {
+					await del(blob.url);
+				} catch (error) {
+					console.error(`Failed to delete blob: ${blob.url}`, error);
+				}
+			})
+		);
+	} catch (error) {
+		console.error('Error cleaning up blob storage:', error);
+		throw error;
+	}
+}
+
+// Modified to return both URLs and content map
 async function saveTranslationsToBlob(translations) {
 	try {
 		const urlMap = {};
+		const contentMap = {};
 		const languages = Object.keys(translations);
 
-		// Process translations in batches
 		for (let i = 0; i < languages.length; i += BATCH_SIZE) {
 			const batch = languages.slice(i, i + BATCH_SIZE);
 			await Promise.all(
 				batch.map(async (lang) => {
 					try {
-						const blob = await put(`languages/${lang}.json`, JSON.stringify(translations[lang]), {
+						const content = JSON.stringify(translations[lang]);
+						const blob = await put(`languages/${lang}.json`, content, {
 							contentType: 'application/json',
 							access: 'public'
 						});
 						urlMap[lang] = blob.url;
+						contentMap[lang] = content;
 					} catch (error) {
 						console.error(`Error saving translation for ${lang}:`, error);
+						throw error;
 					}
 				})
 			);
 		}
 
-		// Save URL map
-		await put('languages/url-map.json', JSON.stringify(urlMap), {
-			contentType: 'application/json',
-			access: 'public'
-		});
-
-		return urlMap;
+		return { urlMap, contentMap };
 	} catch (error) {
 		console.error('Error in saveTranslationsToBlob:', error);
 		throw error;
@@ -112,7 +127,6 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 	return true;
 }
 
-// Commit language files with controlled parallel processing
 // Commit language files sequentially to ensure all files are processed
 async function commitLanguageFiles(octokit, user, repoName, translations) {
 	const languages = Object.keys(translations);
@@ -152,6 +166,8 @@ async function commitLanguageFiles(octokit, user, repoName, translations) {
 }
 
 export async function POST({ request }) {
+	let blobStorageNeedsCleanup = false;
+
 	try {
 		const { repoName, mapConfig, translations } = await request.json();
 
@@ -162,45 +178,40 @@ export async function POST({ request }) {
 		// Validate repository name
 		const repoNameRegex = /^[a-zA-Z0-9-_]+$/;
 		if (!repoNameRegex.test(repoName)) {
-			return json(
-				{
-					error: 'Invalid repository name',
-					status: 'error'
-				},
-				{ status: 400 }
-			);
+			return json({ error: 'Invalid repository name' }, { status: 400 });
 		}
 
 		// Initialize Octokit
 		const octokit = new Octokit({ auth: GITHUB_TOKEN });
 		const { data: user } = await octokit.users.getAuthenticated();
 
-		// Improved logging for tracking
 		console.log(`Starting repository setup for: ${repoName}`);
 
-		// Step 1: Save translations to blob storage (don't wait)
-		const translationPromise = translations
-			? saveTranslationsToBlob(translations)
-			: Promise.resolve(null);
+		// Step 1: Save translations to blob storage and wait for completion
+		let translationData = null;
+		if (translations) {
+			blobStorageNeedsCleanup = true;
+			translationData = await saveTranslationsToBlob(translations);
+		}
 
 		// Step 2: Setup repository
 		await setupRepository(octokit, user, repoName, mapConfig);
 		console.log(`Repository setup complete for: ${repoName}`);
 
-		// Step 3: Commit language files (if any)
-		if (translations) {
+		// Step 3: Commit language files if translations exist
+		if (translationData) {
 			await commitLanguageFiles(octokit, user, repoName, translations);
 			console.log(`Language files committed for: ${repoName}`);
+
+			// Step 4: Clean up blob storage
+			await cleanupBlobStorage();
+			blobStorageNeedsCleanup = false;
 		}
 
-		// Step 4: Get translation URLs (if applicable)
-		const urlMap = await translationPromise;
-
-		// Step 5: Trigger deployment with extended timeout and error handling
+		// Step 5: Trigger deployment
 		try {
-			// Increase timeout for deployment trigger
 			const deploymentController = new AbortController();
-			const timeoutId = setTimeout(() => deploymentController.abort(), 30000); // 30-second timeout
+			const timeoutId = setTimeout(() => deploymentController.abort(), 30000);
 
 			await retryOperation(async () => {
 				try {
@@ -208,39 +219,38 @@ export async function POST({ request }) {
 						owner: user.login,
 						repo: repoName,
 						event_type: 'deployment',
-						// Optional: You can pass additional data if needed
 						client_payload: {
 							initiated_at: new Date().toISOString()
 						}
 					});
+				} finally {
 					clearTimeout(timeoutId);
-				} catch (deployError) {
-					clearTimeout(timeoutId);
-					console.error('Deployment trigger failed:', deployError);
-					throw deployError;
 				}
-			}, 3); // Increase retry attempts for deployment
+			}, 3);
 
 			console.log(`Deployment triggered for: ${repoName}`);
 		} catch (deploymentError) {
-			console.error('Persistent deployment trigger failure:', deploymentError);
-			return json(
-				{
-					error: 'Failed to trigger deployment',
-					details: deploymentError.message,
-					status: 'error'
-				},
-				{ status: 502 } // Use 502 Bad Gateway to indicate deployment issues
-			);
+			console.error('Deployment trigger failure:', deploymentError);
+			throw deploymentError;
 		}
 
 		return json({
 			message: 'Repository created and configured successfully',
 			status: 'success',
 			repoUrl: `https://github.com/${user.login}/${repoName}`,
-			translationUrls: urlMap
+			translationUrls: translationData?.urlMap
 		});
 	} catch (error) {
+		// Ensure blob storage is cleaned up in case of errors
+		if (blobStorageNeedsCleanup) {
+			try {
+				await cleanupBlobStorage();
+				console.log('Blob storage cleaned up after error');
+			} catch (cleanupError) {
+				console.error('Failed to cleanup blob storage after error:', cleanupError);
+			}
+		}
+
 		console.error('Critical error in repository setup:', error);
 		return json(
 			{
