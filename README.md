@@ -1,10 +1,10 @@
-<img width="1552" alt="Bildschirmfoto 2025-01-17 um 09 47 40" src="https://github.com/user-attachments/assets/9d7ffc73-a758-48b4-99e0-4ee6326e836d" />
-
 # EU Map Visualization Application
 
 ## Overview
 
 This is a SvelteKit-powered interactive map visualization application specifically designed for European Union country data. The application provides a comprehensive control panel for configuring and customizing map visualizations, with a unique one-click deployment feature.
+
+<img width="1552" alt="Bildschirmfoto 2025-01-17 um 09 47 40" src="https://github.com/user-attachments/assets/9d7ffc73-a758-48b4-99e0-4ee6326e836d" />
 
 ## Key Features
 
