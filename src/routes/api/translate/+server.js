@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { v2 } from '@google-cloud/translate';
 import { env } from '$env/dynamic/private';
+import { put } from '@vercel/blob';
 
 const { Translate } = v2;
 const googleClient = new Translate({ key: env.GOOGLE_API_KEY });
@@ -32,6 +33,20 @@ const languages = [
 	{ value: 'sv', label: 'Swedish' }
 ];
 
+async function saveTranslationToBlobStorage(lang, content) {
+	try {
+		const blob = await put(`languages/${lang}.json`, JSON.stringify(content), {
+			contentType: 'application/json',
+			access: 'public'
+		});
+		console.log(`Saved translation for ${lang} to blob storage`);
+		return blob.url;
+	} catch (error) {
+		console.error(`Failed to save translation for ${lang} to blob:`, error);
+		throw error;
+	}
+}
+
 async function translateJSON(sourceObject, target, label) {
 	// Keep this function the same, just remove file operations
 	const translatedObject = {};
@@ -62,8 +77,6 @@ export async function POST({ request }) {
 
 		const BATCH_SIZE = 4;
 		const totalBatches = Math.ceil(languages.length / BATCH_SIZE);
-
-		// Calculate the start and end indices for this batch
 		const start = batchIndex * BATCH_SIZE;
 		const end = Math.min(start + BATCH_SIZE, languages.length);
 		const batch = languages.slice(start, end);
@@ -71,6 +84,7 @@ export async function POST({ request }) {
 		const allErrors = [];
 		const results = [];
 		const translations = {};
+		const blobUrls = {};
 
 		// Process the current batch
 		const batchPromises = batch.map(async (item) => {
@@ -81,7 +95,12 @@ export async function POST({ request }) {
 					item.label
 				);
 
+				// Save to translations object
 				translations[item.value] = translatedObject;
+
+				// Save to blob storage
+				const blobUrl = await saveTranslationToBlobStorage(item.value, translatedObject);
+				blobUrls[item.value] = blobUrl;
 
 				if (errors.length > 0) {
 					allErrors.push(...errors);
@@ -93,10 +112,8 @@ export async function POST({ request }) {
 			}
 		});
 
-		// Wait for all translations in this batch to complete
 		await Promise.all(batchPromises);
 
-		// Determine if this is the last batch
 		const isLastBatch = end >= languages.length;
 
 		return json({
@@ -105,6 +122,7 @@ export async function POST({ request }) {
 			totalBatches,
 			completedLanguages: results,
 			translations,
+			blobUrls, // Include blob URLs in response
 			errors: allErrors,
 			hasMore: !isLastBatch,
 			type: isLastBatch ? 'complete' : 'batchComplete',
