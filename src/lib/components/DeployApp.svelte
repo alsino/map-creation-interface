@@ -66,63 +66,90 @@
 		repoUrl = null;
 
 		try {
-			// First API call: Initialize repository
-			const initResponse = await fetch('/api/init-repository', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					repoName,
-					mapConfig: $mapConfig
-				})
-			});
+			// Validate inputs first
+			updateSteps('validate', []);
+			validateData(repoName, $mapConfig, $translations);
+			updateSteps('create', ['validate']);
 
-			if (!initResponse.ok) {
-				const data = await initResponse.json();
-				throw new Error(data.error || 'Failed to initialize repository');
+			// First API call: Initialize repository
+			try {
+				const initResponse = await fetch('/api/init-repository', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						repoName,
+						mapConfig: $mapConfig
+					})
+				});
+
+				const initData = await initResponse.json();
+				if (!initResponse.ok) {
+					throw new Error(initData.error || 'Failed to initialize repository');
+				}
+				repoUrl = initData.repoUrl;
+				updateSteps('translations', ['validate', 'create']);
+			} catch (initError) {
+				console.error('Repository initialization error:', initError);
+				throw new Error(`Repository initialization failed: ${initError.message}`);
 			}
 
-			const initData = await initResponse.json();
-			repoUrl = initData.repoUrl;
-
 			// Second API call: Commit files
-			const commitResponse = await fetch('/api/commit-files', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					repoName,
-					translations: $translations
-				})
-			});
+			try {
+				const commitResponse = await fetch('/api/commit-files', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						repoName,
+						translations: $translations
+					})
+				});
 
-			if (!commitResponse.ok) {
-				const data = await commitResponse.json();
-				throw new Error(data.error || 'Failed to commit files');
+				const commitData = await commitResponse.json();
+				if (!commitResponse.ok) {
+					throw new Error(commitData.error || 'Failed to commit files');
+				}
+				updateSteps('deploy', ['validate', 'create', 'translations', 'config']);
+			} catch (commitError) {
+				console.error('File commit error:', commitError);
+				throw new Error(`File commit failed: ${commitError.message}`);
 			}
 
 			// Third API call: Deploy to Vercel
-			const deployResponse = await fetch('/api/deploy-vercel', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ repoName })
-			});
+			try {
+				const deployResponse = await fetch('/api/deploy-vercel', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ repoName })
+				});
 
-			if (!deployResponse.ok) {
-				const data = await deployResponse.json();
-				throw new Error(data.error || 'Failed to deploy to Vercel');
+				const deployData = await deployResponse.json();
+				if (!deployResponse.ok) {
+					throw new Error(deployData.error || 'Failed to deploy to Vercel');
+				}
+
+				deploymentUrl = deployData.projectUrl;
+				embedUrl = deployData.projectUrl;
+				updateSteps(null, ['validate', 'create', 'translations', 'config', 'deploy']);
+				successMessage = 'Repository created and deployed successfully!';
+			} catch (deployError) {
+				console.error('Deployment error:', deployError);
+				throw new Error(`Deployment failed: ${deployError.message}`);
 			}
-
-			const deployData = await deployResponse.json();
-			deploymentUrl = deployData.projectUrl;
-			successMessage = 'Repository created and deployed successfully!';
 		} catch (error) {
-			console.error('Error:', error);
+			console.error('Overall error:', error);
 			errorMessage = error.message;
+			// Reset steps on error
+			steps = steps.map((step) => ({
+				...step,
+				completed: false,
+				current: false
+			}));
 		} finally {
 			isLoading = false;
 		}
