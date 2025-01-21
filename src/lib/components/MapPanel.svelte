@@ -178,7 +178,7 @@
 				}
 			}
 
-			console.log('Loaded translation data:', data);
+			// console.log('Loaded translation data:', data);
 
 			// Create the new config object
 			const newConfig = {

@@ -85,7 +85,7 @@
 			updateSteps('translations', ['validate', 'create']);
 			const BATCH_SIZE = 6;
 			const languages = Object.keys($translations);
-			console.log(`Starting to process ${languages.length} languages in batches of ${BATCH_SIZE}`);
+			// console.log(`Starting to process ${languages.length} languages in batches of ${BATCH_SIZE}`);
 
 			for (let i = 0; i < languages.length; i += BATCH_SIZE) {
 				const batchLanguages = languages.slice(i, i + BATCH_SIZE);
@@ -115,7 +115,7 @@
 
 					// Mark languages as processed
 					batchLanguages.forEach((lang) => processedLanguages.add(lang));
-					console.log(`Completed batch with languages: ${batchLanguages.join(', ')}`);
+					// console.log(`Completed batch with languages: ${batchLanguages.join(', ')}`);
 
 					// Add small delay between batches
 					if (i + BATCH_SIZE < languages.length) {
