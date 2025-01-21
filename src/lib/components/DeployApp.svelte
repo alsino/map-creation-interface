@@ -101,7 +101,7 @@
 		repoUrl = null;
 
 		try {
-			// Initialize repository
+			// First initialize the repository
 			updateSteps('create', ['validate']);
 			const initData = await makeRequest('/api/init-repository', {
 				repoName,
@@ -109,34 +109,41 @@
 			});
 			repoUrl = initData.repoUrl;
 
-			// Commit files in smaller batches
+			// Then commit one language file at a time
 			updateSteps('translations', ['validate', 'create']);
-			const BATCH_SIZE = 2; // Reduced batch size
 			const languages = Object.keys($translations);
-			const totalBatches = Math.ceil(languages.length / BATCH_SIZE);
 
-			for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-				const start = batchIndex * BATCH_SIZE;
-				const end = Math.min(start + BATCH_SIZE, languages.length);
-				const batchLanguages = languages.slice(start, end);
+			for (let i = 0; i < languages.length; i++) {
+				const lang = languages[i];
+				const singleTranslation = {
+					[lang]: $translations[lang]
+				};
 
-				const batchTranslations = {};
-				batchLanguages.forEach((lang) => {
-					batchTranslations[lang] = $translations[lang];
-				});
+				try {
+					await makeRequest('/api/commit-files', {
+						repoName,
+						translations: singleTranslation,
+						isLastFile: i === languages.length - 1
+					});
 
-				await makeRequest('/api/commit-files', {
-					repoName,
-					translations: batchTranslations,
-					batchIndex,
-					isLastBatch: end >= languages.length
-				});
+					// Update progress
+					successMessage = `Processed ${i + 1} of ${languages.length} languages...`;
+				} catch (error) {
+					console.error(`Failed to process language ${lang}:`, error);
+					// Wait a bit before retrying
+					await new Promise((resolve) => setTimeout(resolve, 2000));
+					// Retry this language
+					i--;
+					continue;
+				}
 
-				// Update progress
-				successMessage = `Processed ${end} of ${languages.length} languages...`;
+				// Add a small delay between files
+				if (i < languages.length - 1) {
+					await new Promise((resolve) => setTimeout(resolve, 1000));
+				}
 			}
 
-			// Deploy to Vercel
+			// Finally deploy to Vercel
 			updateSteps('deploy', ['validate', 'create', 'translations', 'config']);
 			const deployData = await makeRequest('/api/deploy-vercel', { repoName });
 
@@ -155,6 +162,54 @@
 		} finally {
 			isLoading = false;
 		}
+	}
+
+	// Helper function to handle request errors
+	async function makeRequest(url, data) {
+		const MAX_RETRIES = 3;
+		let lastError;
+
+		for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+			try {
+				const response = await fetch(url, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify(data)
+				});
+
+				// Handle non-JSON responses
+				const textData = await response.text();
+				let jsonData;
+
+				try {
+					jsonData = JSON.parse(textData);
+				} catch (parseError) {
+					if (response.status === 504) {
+						throw new Error('Request timeout - will retry');
+					}
+					throw new Error(textData || 'Invalid response format');
+				}
+
+				if (!response.ok) {
+					throw new Error(jsonData.error || 'Request failed');
+				}
+
+				return jsonData;
+			} catch (error) {
+				console.error(`Attempt ${attempt + 1} failed:`, error);
+				lastError = error;
+
+				// If this isn't the last attempt, wait before retrying
+				if (attempt < MAX_RETRIES - 1) {
+					await new Promise((resolve) => setTimeout(resolve, 2000 * (attempt + 1)));
+					continue;
+				}
+			}
+		}
+
+		throw lastError;
 	}
 </script>
 

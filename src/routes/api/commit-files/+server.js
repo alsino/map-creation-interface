@@ -128,8 +128,9 @@ async function commitLanguageFiles(octokit, user, repoName, translations) {
 
 export async function POST({ request }) {
 	try {
-		const { repoName, translations, isLastBatch = false } = await request.json();
-		console.log(`Processing files for repo: ${repoName}, isLastBatch: ${isLastBatch}`);
+		const { repoName, translations, isLastFile = false } = await request.json();
+		const lang = Object.keys(translations)[0]; // We expect only one language
+		console.log(`Processing file for language: ${lang}, isLastFile: ${isLastFile}`);
 
 		if (!GITHUB_TOKEN) {
 			throw new Error('GitHub token not configured');
@@ -138,35 +139,64 @@ export async function POST({ request }) {
 		const octokit = new Octokit({ auth: GITHUB_TOKEN });
 		const { data: user } = await octokit.users.getAuthenticated();
 
-		// Process each language in this batch
-		for (const lang of Object.keys(translations)) {
-			try {
-				const content = JSON.stringify(translations[lang], null, 2);
-				const path = `static/languages/${lang}.json`;
-				await commitSingleFile(octokit, user, repoName, lang, content, path);
-				console.log(`Committed file for language: ${lang}`);
-			} catch (error) {
-				console.error(`Error processing language ${lang}:`, error);
+		// Commit single language file
+		const content = JSON.stringify(translations[lang], null, 2);
+		const path = `static/languages/${lang}.json`;
+
+		try {
+			const { data: existingFile } = await octokit.repos.getContent({
+				owner: user.login,
+				repo: repoName,
+				path
+			});
+
+			await octokit.repos.createOrUpdateFileContents({
+				owner: user.login,
+				repo: repoName,
+				path,
+				message: `Update language file: ${lang}`,
+				content: Buffer.from(content).toString('base64'),
+				sha: existingFile.sha,
+				branch: 'main'
+			});
+		} catch (error) {
+			if (error.status === 404) {
+				await octokit.repos.createOrUpdateFileContents({
+					owner: user.login,
+					repo: repoName,
+					path,
+					message: `Add language file: ${lang}`,
+					content: Buffer.from(content).toString('base64'),
+					branch: 'main'
+				});
+			} else {
 				throw error;
 			}
 		}
 
-		// Only clean up and trigger deployment on the last batch
-		if (isLastBatch) {
-			console.log('Final batch - cleaning up and triggering deployment');
+		// Only clean up and trigger deployment on the last file
+		if (isLastFile) {
+			console.log('Final file - cleaning up and triggering deployment');
 			await cleanupBlobStorage();
-			await triggerDeployment(octokit, user, repoName);
+			await octokit.repos.createDispatchEvent({
+				owner: user.login,
+				repo: repoName,
+				event_type: 'deployment',
+				client_payload: {
+					initiated_at: new Date().toISOString()
+				}
+			});
 		}
 
 		return json({
 			status: 'success',
-			message: isLastBatch ? 'All files processed' : 'Batch processed'
+			message: `Successfully processed ${lang}`
 		});
 	} catch (error) {
 		console.error('Error in commit-files:', error);
 		return json(
 			{
-				error: error.message || 'Failed to commit files',
+				error: error.message || 'Failed to commit file',
 				status: 'error'
 			},
 			{ status: error.status || 500 }
