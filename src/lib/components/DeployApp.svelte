@@ -25,11 +25,17 @@
 		return `<iframe title="New Map" aria-label="Map" id="${slugifiedId}" src="${deployUrl}" scrolling="no" frameborder="0" style="width: 0; min-width: 100% !important; border: none;" height="624"></iframe><script type="text/javascript">window.addEventListener("message",e=>{if("${embedUrl}"!==e.origin)return;let t=e.data;if(t.height){document.getElementById("${slugifiedId}").height=t.height+"px"}},!1)<\/script>`;
 	}
 
+	// Add to your steps array at the top:
 	let steps = [
 		{ id: 'validate', text: 'Validating repository name', completed: false, current: false },
-		{ id: 'translations', text: 'Saving translations', completed: false, current: false },
 		{ id: 'create', text: 'Creating GitHub repository', completed: false, current: false },
-		{ id: 'config', text: 'Configuring map settings', completed: false, current: false },
+		{
+			id: 'translations',
+			text: 'Committing language files (0%)',
+			completed: false,
+			current: false
+		},
+		{ id: 'cleanup', text: 'Cleaning up temporary files', completed: false, current: false },
 		{ id: 'deploy', text: 'Deploying to Vercel', completed: false, current: false }
 	];
 
@@ -67,7 +73,7 @@
 		const processedLanguages = new Set();
 
 		try {
-			// First initialize the repository
+			// Validate and initialize repository
 			updateSteps('create', ['validate']);
 			const initData = await makeRequest('/api/init-repository', {
 				repoName,
@@ -75,44 +81,67 @@
 			});
 			repoUrl = initData.repoUrl;
 
-			// Then commit one language file at a time
+			// Process files in small batches
 			updateSteps('translations', ['validate', 'create']);
+			const BATCH_SIZE = 3;
 			const languages = Object.keys($translations);
-			console.log(`Starting to process ${languages.length} languages:`, languages);
+			console.log(`Starting to process ${languages.length} languages in batches of ${BATCH_SIZE}`);
 
-			for (let i = 0; i < languages.length; i++) {
-				const lang = languages[i];
-				const singleTranslation = {
-					[lang]: $translations[lang]
-				};
+			for (let i = 0; i < languages.length; i += BATCH_SIZE) {
+				const batchLanguages = languages.slice(i, i + BATCH_SIZE);
+				const progress = Math.round(((i + batchLanguages.length) / languages.length) * 100);
+
+				// Update progress in steps
+				steps = steps.map((step) => ({
+					...step,
+					text:
+						step.id === 'translations'
+							? `Committing language files (${progress}%) - Batch ${Math.floor(i / BATCH_SIZE) + 1}`
+							: step.text
+				}));
+
+				// Process batch
+				const batchTranslations = {};
+				batchLanguages.forEach((lang) => {
+					batchTranslations[lang] = $translations[lang];
+				});
 
 				try {
 					await makeRequest('/api/commit-files', {
 						repoName,
-						translations: singleTranslation,
-						isLastFile: i === languages.length - 1,
-						currentIndex: i,
-						totalFiles: languages.length
+						translations: batchTranslations,
+						isLastBatch: i + BATCH_SIZE >= languages.length
 					});
 
-					processedLanguages.add(lang);
-					console.log(`Successfully processed language ${lang} (${i + 1}/${languages.length})`);
+					// Mark languages as processed
+					batchLanguages.forEach((lang) => processedLanguages.add(lang));
+					console.log(`Completed batch with languages: ${batchLanguages.join(', ')}`);
 
-					// Update progress
-					successMessage = `Processed ${i + 1} of ${languages.length} languages...`;
+					// Add small delay between batches
+					if (i + BATCH_SIZE < languages.length) {
+						await new Promise((resolve) => setTimeout(resolve, 500));
+					}
 				} catch (error) {
-					console.error(`Failed to process language ${lang}:`, error);
-					// Wait a bit before retrying
-					await new Promise((resolve) => setTimeout(resolve, 2000));
-					// Retry this language
-					i--;
-					continue;
+					console.error(`Batch processing failed, falling back to single file processing:`, error);
+
+					// Fallback to single file processing for this batch
+					for (const lang of batchLanguages) {
+						try {
+							await makeRequest('/api/commit-files', {
+								repoName,
+								translations: { [lang]: $translations[lang] },
+								isLastFile: lang === languages[languages.length - 1]
+							});
+							processedLanguages.add(lang);
+							console.log(`Processed single language: ${lang}`);
+						} catch (singleError) {
+							console.error(`Failed to process language ${lang}:`, singleError);
+						}
+					}
 				}
 
-				// Add a small delay between files
-				if (i < languages.length - 1) {
-					await new Promise((resolve) => setTimeout(resolve, 1000));
-				}
+				// Update progress message
+				successMessage = `Processed ${processedLanguages.size} of ${languages.length} languages...`;
 			}
 
 			// Verify all languages were processed
@@ -124,24 +153,25 @@
 				);
 			}
 
-			// After all files are committed, clean up storage
+			// Clean up storage
+			updateSteps('cleanup', ['validate', 'create', 'translations']);
 			try {
 				const cleanupResponse = await makeRequest('/api/cleanup-storage', {});
 				if (cleanupResponse.remainingBlobs > 0) {
 					successMessage += `\nWarning: ${cleanupResponse.remainingBlobs} files remain in storage.`;
 				}
 			} catch (cleanupError) {
-				successMessage += '\nWarning: Storage cleanup failed. Some temporary files may remain.';
 				console.error('Storage cleanup failed:', cleanupError);
+				successMessage += '\nWarning: Storage cleanup failed. Some temporary files may remain.';
 			}
 
 			// Deploy to Vercel
-			updateSteps('deploy', ['validate', 'create', 'translations', 'config']);
+			updateSteps('deploy', ['validate', 'create', 'translations', 'cleanup']);
 			const deployData = await makeRequest('/api/deploy-vercel', { repoName });
 
 			deploymentUrl = deployData.projectUrl;
 			embedUrl = deployData.projectUrl;
-			updateSteps(null, ['validate', 'create', 'translations', 'config', 'deploy']);
+			updateSteps(null, ['validate', 'create', 'translations', 'cleanup', 'deploy']);
 			successMessage = 'Repository created and deployed successfully!';
 		} catch (error) {
 			console.error('Error:', error);
