@@ -124,7 +124,7 @@ export async function POST({ request }) {
 		return json({
 			message: 'Project created and deployment initiated',
 			deploymentUrl: deployData.url,
-			projectUrl: `https://${repoName}.vercel.app`
+			projectUrl: `https://${repoName}.vercel.app?view=fullscreen`
 		});
 	} catch (error) {
 		console.error('Deployment error:', error);
