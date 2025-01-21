@@ -128,11 +128,11 @@
 			try {
 				const cleanupResponse = await makeRequest('/api/cleanup-storage', {});
 				if (cleanupResponse.remainingBlobs > 0) {
-					console.warn(`${cleanupResponse.remainingBlobs} files remain in storage`);
+					successMessage += `\nWarning: ${cleanupResponse.remainingBlobs} files remain in storage.`;
 				}
 			} catch (cleanupError) {
+				successMessage += '\nWarning: Storage cleanup failed. Some temporary files may remain.';
 				console.error('Storage cleanup failed:', cleanupError);
-				// Continue with deployment even if cleanup fails
 			}
 
 			// Deploy to Vercel
