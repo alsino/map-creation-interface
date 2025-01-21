@@ -160,7 +160,7 @@
 
 			let data;
 			const isSubApp = window.location.search.includes('view=fullscreen');
-			console.log('Is sub app:', isSubApp, 'Loading language:', lang);
+			// console.log('Is sub app:', isSubApp, 'Loading language:', lang);
 
 			if (isSubApp) {
 				// In deployed sub-app, load from static files
