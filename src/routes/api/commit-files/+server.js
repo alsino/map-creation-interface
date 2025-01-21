@@ -6,27 +6,6 @@ import { GITHUB_TOKEN } from '$env/static/private';
 // Constants
 const BATCH_SIZE = 3;
 
-// Clean up blob storage
-async function cleanupBlobStorage() {
-	try {
-		const { blobs } = await list();
-		await Promise.all(
-			blobs.map(async (blob) => {
-				try {
-					await del(blob.url);
-					console.log(`Deleted blob: ${blob.url}`);
-				} catch (error) {
-					console.error(`Failed to delete blob: ${blob.url}`, error);
-				}
-			})
-		);
-		console.log('Blob storage cleanup completed');
-	} catch (error) {
-		console.error('Error cleaning up blob storage:', error);
-		throw error;
-	}
-}
-
 // Commit language files in batches
 async function commitLanguageFiles(octokit, user, repoName, translations) {
 	const languages = Object.keys(translations);
@@ -121,20 +100,6 @@ export async function POST({ request }) {
 			} else {
 				throw error;
 			}
-		}
-
-		// Only clean up and trigger deployment on the last file
-		if (isLastFile) {
-			console.log('Final file - cleaning up and triggering deployment');
-			await cleanupBlobStorage();
-			await octokit.repos.createDispatchEvent({
-				owner: user.login,
-				repo: repoName,
-				event_type: 'deployment',
-				client_payload: {
-					initiated_at: new Date().toISOString()
-				}
-			});
 		}
 
 		return json({
