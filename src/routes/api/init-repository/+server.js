@@ -51,6 +51,7 @@ async function setupRepository(octokit, user, repoName, mapConfig) {
 export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 
 	try {
+		// Try to get existing file
 		const { data: currentFile } = await retryOperation(async () => {
 			return await octokit.repos.getContent({
 				owner: user.login,
@@ -59,6 +60,7 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 			});
 		});
 
+		// Update existing file
 		await retryOperation(async () => {
 			await octokit.repos.createOrUpdateFileContents({
 				owner: user.login,
@@ -71,8 +73,21 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 			});
 		});
 	} catch (error) {
-		console.error('Error updating config file:', error);
-		throw error;
+		if (error.status === 404) {
+			// File doesn't exist yet, create it
+			await retryOperation(async () => {
+				await octokit.repos.createOrUpdateFileContents({
+					owner: user.login,
+					repo: repoName,
+					path: 'src/lib/stores/config-map.js',
+					message: 'Add map configuration',
+					content: Buffer.from(configMapContent).toString('base64'),
+					branch: 'main'
+				});
+			});
+		} else {
+			throw error;
+		}
 	}
 
 	return true;
