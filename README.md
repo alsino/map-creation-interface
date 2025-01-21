@@ -63,6 +63,73 @@ This is a SvelteKit-powered interactive map visualization application specifical
 - Vercel Blob Storage
 - Responsive design
 
+## Environment Variables
+
+To run and deploy the application, you'll need to configure the following environment variables:
+
+### Required Environment Variables
+
+1. **GitHub Integration**
+
+   - `GITHUB_TOKEN`: Personal access token for GitHub repository creation and management
+   - `GITHUB_USERNAME`: GitHub username used for repository operations
+
+2. **Vercel Deployment**
+
+   - `DEPLOY_VERCEL_TOKEN`: Authentication token for Vercel deployment
+
+3. **Translation Service**
+
+   - `TRANSLATE_ENGINE`: Translation service to use (e.g., "google")
+   - `GOOGLE_API_KEY`: API key for Google Cloud Translation service
+
+4. **Vercel Blob Storage**
+   - `BLOB_READ_WRITE_TOKEN`: Token for reading and writing to Vercel Blob storage
+
+### Example .env File
+
+```plaintext
+# GitHub Configuration
+GITHUB_TOKEN=ghp_your_github_personal_access_token
+GITHUB_USERNAME=your_github_username
+
+# Vercel Deployment
+DEPLOY_VERCEL_TOKEN=your_vercel_deployment_token
+
+# Translation Configuration
+TRANSLATE_ENGINE=google
+GOOGLE_API_KEY=your_google_cloud_translation_api_key
+
+# Blob Storage
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_read_write_token
+```
+
+### Security Recommendations
+
+- Never commit your `.env` file to version control
+- Use environment-specific `.env` files (e.g., `.env.development`, `.env.production`)
+- Rotate tokens and keys periodically
+- Limit token permissions to only necessary scopes
+
+### Configuration Steps
+
+1. Create a `.env` file in the project root
+2. Copy the example variables above
+3. Replace placeholder values with your actual tokens and keys
+4. Ensure the `.env` file is added to `.gitignore`
+
+### Obtaining Tokens
+
+- **GitHub Token**: [GitHub Personal Access Tokens](https://github.com/settings/tokens)
+- **Vercel Token**: [Vercel Account Tokens](https://vercel.com/account/tokens)
+- **Google Cloud Translation API Key**: [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+
+### Troubleshooting
+
+- Verify all tokens have the necessary permissions
+- Check that API keys are correctly configured
+- Ensure environment variables are not exposed publicly
+
 ## Translation Workflow: From Input to Multilingual Map
 
 ### Comprehensive Translation Process
