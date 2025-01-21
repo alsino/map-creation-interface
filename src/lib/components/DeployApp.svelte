@@ -66,82 +66,63 @@
 		repoUrl = null;
 
 		try {
-			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 seconds timeout
-
-			const response = await fetch('/api/commit-component', {
+			// First API call: Initialize repository
+			const initResponse = await fetch('/api/init-repository', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
-					Accept: 'application/json'
+					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
 					repoName,
-					mapConfig: $mapConfig,
-					translations: $translations
-				}),
-				signal: controller.signal
+					mapConfig: $mapConfig
+				})
 			});
 
-			clearTimeout(timeoutId);
-
-			if (!response.ok) {
-				const text = await response.text();
-				try {
-					const data = JSON.parse(text);
-					throw new Error(data.error || 'Failed to create repository');
-				} catch (e) {
-					throw new Error(`Server error: ${text}`);
-				}
+			if (!initResponse.ok) {
+				const data = await initResponse.json();
+				throw new Error(data.error || 'Failed to initialize repository');
 			}
 
-			const data = await response.json();
-			repoUrl = data.repoUrl;
+			const initData = await initResponse.json();
+			repoUrl = initData.repoUrl;
 
-			// Handle deployment
-			try {
-				const deployController = new AbortController();
-				const deployTimeoutId = setTimeout(() => deployController.abort(), 15000);
+			// Second API call: Commit files
+			const commitResponse = await fetch('/api/commit-files', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					repoName,
+					translations: $translations
+				})
+			});
 
-				const deployResponse = await fetch('/api/deploy-vercel', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({ repoName }),
-					signal: deployController.signal
-				});
-
-				clearTimeout(deployTimeoutId);
-
-				const deployData = await deployResponse.json();
-				if (!deployResponse.ok) {
-					throw new Error(deployData.error || 'Failed to deploy to Vercel');
-				}
-
-				deploymentUrl = `${deployData.projectUrl}?view=fullscreen`;
-				embedUrl = `${deployData.projectUrl}`;
-
-				// All steps completed
-				steps = steps.map((step) => ({ ...step, completed: true, current: false }));
-				successMessage = 'Successfully deployed!';
-			} catch (deployError) {
-				console.error('Deploy error:', deployError);
-				successMessage =
-					'Repository created, but deployment failed. You can deploy manually from the repository.';
-				steps = steps.map((step) => ({
-					...step,
-					completed: step.id !== 'deploy',
-					current: false
-				}));
+			if (!commitResponse.ok) {
+				const data = await commitResponse.json();
+				throw new Error(data.error || 'Failed to commit files');
 			}
+
+			// Third API call: Deploy to Vercel
+			const deployResponse = await fetch('/api/deploy-vercel', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ repoName })
+			});
+
+			if (!deployResponse.ok) {
+				const data = await deployResponse.json();
+				throw new Error(data.error || 'Failed to deploy to Vercel');
+			}
+
+			const deployData = await deployResponse.json();
+			deploymentUrl = deployData.projectUrl;
+			successMessage = 'Repository created and deployed successfully!';
 		} catch (error) {
 			console.error('Error:', error);
-			errorMessage =
-				error.name === 'AbortError'
-					? 'Request timed out. The operation might still complete in the background.'
-					: error.message;
-			steps = steps.map((step) => ({ ...step, current: false }));
+			errorMessage = error.message;
 		} finally {
 			isLoading = false;
 		}
