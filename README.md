@@ -289,9 +289,7 @@ Belgium,BE,0.083,FALSE
 
 ## Contact
 
-[Your Name/Organization]
-
-- Project Link: [https://github.com/your-username/your-repo]
+Alsino Skowronnek: https://github.com/alsino/
 
 ## Additional Resources
 
