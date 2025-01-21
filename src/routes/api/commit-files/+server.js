@@ -4,7 +4,7 @@ import { list, del } from '@vercel/blob';
 import { GITHUB_TOKEN } from '$env/static/private';
 
 // Constants
-const BATCH_SIZE = 5;
+const BATCH_SIZE = 3;
 
 // Clean up blob storage
 async function cleanupBlobStorage() {
@@ -97,7 +97,7 @@ export async function POST({ request }) {
 		await cleanupBlobStorage();
 		console.log('Blob storage cleaned up');
 
-		// Trigger deployment
+		// Only trigger deployment, don't wait for it
 		console.log('Triggering deployment...');
 		await octokit.repos.createDispatchEvent({
 			owner: user.login,
@@ -109,25 +109,17 @@ export async function POST({ request }) {
 		});
 
 		return json({
-			message: 'Files committed and deployment initiated',
+			message: 'Files committed successfully',
 			status: 'success',
-			repoUrl: `https://github.com/${user.login}/${repoName}`,
-			projectUrl: `https://${repoName}.vercel.app`
+			repoUrl: `https://github.com/${user.login}/${repoName}`
 		});
 	} catch (error) {
 		console.error('File commit error:', error);
-		// Try to clean up blob storage even if commit failed
-		try {
-			await cleanupBlobStorage();
-			console.log('Blob storage cleaned up after error');
-		} catch (cleanupError) {
-			console.error('Failed to cleanup blob storage after error:', cleanupError);
-		}
-
 		return json(
 			{
 				error: error.message || 'Failed to commit files',
-				status: 'error'
+				status: 'error',
+				details: error.stack
 			},
 			{ status: error.status || 500 }
 		);
