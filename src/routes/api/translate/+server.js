@@ -33,22 +33,7 @@ const languages = [
 	{ value: 'sv', label: 'Swedish' }
 ];
 
-async function saveTranslationToBlobStorage(lang, content) {
-	try {
-		const blob = await put(`languages/${lang}.json`, JSON.stringify(content), {
-			contentType: 'application/json',
-			access: 'public'
-		});
-		console.log(`Saved translation for ${lang} to blob storage`);
-		return blob.url;
-	} catch (error) {
-		console.error(`Failed to save translation for ${lang} to blob:`, error);
-		throw error;
-	}
-}
-
 async function translateJSON(sourceObject, target, label) {
-	// Keep this function the same, just remove file operations
 	const translatedObject = {};
 	const errors = [];
 
@@ -67,8 +52,35 @@ async function translateJSON(sourceObject, target, label) {
 	return { translatedObject, errors };
 }
 
+async function saveTranslationToBlobStorage(lang, content, token) {
+	try {
+		const blob = await put(`languages/${lang}.json`, JSON.stringify(content), {
+			contentType: 'application/json',
+			access: 'public',
+			token: token
+		});
+		console.log(`Successfully saved translation for ${lang}`);
+		return blob.url;
+	} catch (error) {
+		console.error(`Failed to save translation for ${lang} to blob:`, error);
+		throw error;
+	}
+}
+
 export async function POST({ request }) {
 	try {
+		// Get blob token at the start
+		const blobToken = env.BLOB_READ_WRITE_TOKEN;
+		if (!blobToken) {
+			throw new Error('BLOB_READ_WRITE_TOKEN is not configured');
+		}
+
+		console.log('Environment check:', {
+			hasBlob: !!blobToken,
+			blobLength: blobToken.length,
+			timestamp: new Date().toISOString()
+		});
+
 		const { sourceObject, batchIndex = 0 } = await request.json();
 
 		if (!sourceObject || Object.keys(sourceObject).length === 0) {
@@ -77,6 +89,8 @@ export async function POST({ request }) {
 
 		const BATCH_SIZE = 4;
 		const totalBatches = Math.ceil(languages.length / BATCH_SIZE);
+
+		// Calculate the start and end indices for this batch
 		const start = batchIndex * BATCH_SIZE;
 		const end = Math.min(start + BATCH_SIZE, languages.length);
 		const batch = languages.slice(start, end);
@@ -95,11 +109,10 @@ export async function POST({ request }) {
 					item.label
 				);
 
-				// Save to translations object
 				translations[item.value] = translatedObject;
 
-				// Save to blob storage
-				const blobUrl = await saveTranslationToBlobStorage(item.value, translatedObject);
+				// Save to blob storage with explicit token
+				const blobUrl = await saveTranslationToBlobStorage(item.value, translatedObject, blobToken);
 				blobUrls[item.value] = blobUrl;
 
 				if (errors.length > 0) {
@@ -112,8 +125,10 @@ export async function POST({ request }) {
 			}
 		});
 
+		// Wait for all translations in this batch to complete
 		await Promise.all(batchPromises);
 
+		// Determine if this is the last batch
 		const isLastBatch = end >= languages.length;
 
 		return json({
@@ -122,7 +137,7 @@ export async function POST({ request }) {
 			totalBatches,
 			completedLanguages: results,
 			translations,
-			blobUrls, // Include blob URLs in response
+			blobUrls,
 			errors: allErrors,
 			hasMore: !isLastBatch,
 			type: isLastBatch ? 'complete' : 'batchComplete',
