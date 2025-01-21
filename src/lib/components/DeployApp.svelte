@@ -83,7 +83,7 @@
 
 			// Process files in small batches
 			updateSteps('translations', ['validate', 'create']);
-			const BATCH_SIZE = 3;
+			const BATCH_SIZE = 6;
 			const languages = Object.keys($translations);
 			console.log(`Starting to process ${languages.length} languages in batches of ${BATCH_SIZE}`);
 
