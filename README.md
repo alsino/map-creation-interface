@@ -1,10 +1,10 @@
+<img width="1552" alt="Bildschirmfoto 2025-01-17 um 09 47 40" src="https://github.com/user-attachments/assets/9d7ffc73-a758-48b4-99e0-4ee6326e836d" />
+
 # EU Map Visualization Application
 
 ## Overview
 
 This is a SvelteKit-powered interactive map visualization application specifically designed for European Union country data. The application provides a comprehensive control panel for configuring and customizing map visualizations, with a unique one-click deployment feature.
-
-<img width="1552" alt="Bildschirmfoto 2025-01-17 um 09 47 40" src="https://github.com/user-attachments/assets/9d7ffc73-a758-48b4-99e0-4ee6326e836d" />
 
 ## Key Features
 
@@ -36,11 +36,12 @@ This is a SvelteKit-powered interactive map visualization application specifical
   - Color scheme reversal
   - Custom number of color classes
 
-### Translation Support
+### Translation Workflow
 
-- Automatic translation of map text to multiple languages
+- Automatic translation of map text to 24 languages
 - Translation progress tracking
-- Support for 24 languages
+- Google Cloud Translation API integration
+- Vercel Blob Storage preservation
 
 ## Prerequisites
 
@@ -48,6 +49,7 @@ This is a SvelteKit-powered interactive map visualization application specifical
 - npm or pnpm
 - GitHub account
 - Vercel account
+- Google Cloud Translation API key
 - A modern web browser
 
 ## Technologies Used
@@ -55,10 +57,116 @@ This is a SvelteKit-powered interactive map visualization application specifical
 - SvelteKit
 - Tailwind CSS
 - D3.js (for CSV parsing)
-- Custom translation API
+- Google Cloud Translation API
 - GitHub API
 - Vercel Deployment API
+- Vercel Blob Storage
 - Responsive design
+
+## Translation Workflow: From Input to Multilingual Map
+
+### Comprehensive Translation Process
+
+The application provides a seamless, automated translation workflow that transforms user-input text into a fully multilingual map experience:
+
+#### 1. Source Content Input
+
+- Users input original text through the control panel
+- Translatable content includes:
+  - Map title
+  - Subtitle
+  - Data source description
+  - Notes
+  - Additional metadata
+
+#### 2. Translation Generation
+
+- Utilizes Google Cloud Translate API
+- Supports 24 European languages:
+  1. Bulgarian
+  2. Croatian
+  3. Czech
+  4. Danish
+  5. Dutch
+  6. English
+  7. Estonian
+  8. Finnish
+  9. French
+  10. German
+  11. Greek
+  12. Hungarian
+  13. Irish
+  14. Italian
+  15. Latvian
+  16. Lithuanian
+  17. Maltese
+  18. Polish
+  19. Portuguese
+  20. Romanian
+  21. Slovak
+  22. Slovenian
+  23. Spanish
+  24. Swedish
+
+#### 3. Translation Batch Processing
+
+- Translations generated in batches of 4 languages
+- Handles potential translation errors gracefully
+- Provides detailed progress tracking
+
+#### 4. Blob Storage Preservation
+
+- Translated content saved to Vercel Blob Storage
+- Each language gets a dedicated JSON file
+- Public URLs generated for easy access
+- Ensures translation persistence and retrieval
+
+#### 5. Repository Commitment
+
+- Translated JSON files committed to GitHub repository
+- Enables version control of translations
+- Provides backup and historical tracking
+
+#### 6. Map Interface Integration
+
+- Translated files populate language dropdown
+- Allows users to switch between languages dynamically
+- Seamless user experience across multiple languages
+
+### Technical Translation Workflow Diagram
+
+```
+User Input Text
+    ↓
+Google Cloud Translation API
+    ↓
+24 Language Translations
+    ↓
+Vercel Blob Storage (language_code.json)
+    ↓
+GitHub Repository Commit
+    ↓
+Map Interface Language Selector
+```
+
+### Error Handling and Resilience
+
+- Partial translation support
+- Fallback to original text if translation fails
+- Detailed error logging
+- Batch processing with retry mechanisms
+
+### Performance Considerations
+
+- Batch processing minimizes API calls
+- Caching of translation results
+- Efficient storage and retrieval mechanisms
+
+### Privacy and Compliance
+
+- Utilizes secure Google Cloud Translation API
+- Temporary storage with controlled access
+- Complies with EU multilingual requirements
 
 ## Deployment Workflow and API Sequence
 
@@ -180,34 +288,6 @@ The deployment process involves a carefully orchestrated sequence of API calls, 
 - Detailed error logging
 - Ability to resume from last successful step
 
-## Getting Started
-
-### Local Development
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://your-repository-url.git
-   cd your-project-directory
-   ```
-
-2. Install dependencies:
-
-   ```bash
-   npm install
-   # or
-   pnpm install
-   ```
-
-3. Run development server:
-   ```bash
-   npm run dev
-   # or
-   pnpm dev
-   ```
-
-Open [http://localhost:5173](http://localhost:5173) in your browser.
-
 ## Data Input Format
 
 The application requires a CSV with the following columns:
@@ -240,21 +320,14 @@ Belgium,BE,0.083,FALSE
 - Custom unit labels
 - Override scale bar values
 
-## Translation Feature
+### Color Scheme Configuration
 
-- Supports translation of all text elements
-- Tracks translation progress
-- Generates translations for 24 languages
-- Provides detailed progress and error reporting
-
-## Color Scheme Configuration
-
-### Scheme Types
+#### Scheme Types
 
 - **Sequential**: Single-hue color gradients
 - **Diverging**: Contrasting color schemes
 
-### Color Customization
+#### Color Customization
 
 - Choose from multiple predefined color schemes
 - Reverse color order
@@ -280,12 +353,42 @@ Belgium,BE,0.083,FALSE
 - Check browser console for any runtime errors
 - Verify GitHub and Vercel account connections
 - Review deployment step messages
+- Confirm Google Cloud Translation API key is valid
 
 ## Error Handling
 
 - Robust retry mechanism for API requests
 - Detailed error messages
 - Partial success tracking for translations
+- Fallback to original text if translation fails
+
+## Getting Started
+
+### Local Development
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://your-repository-url.git
+   cd your-project-directory
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   # or
+   pnpm install
+   ```
+
+3. Run development server:
+   ```bash
+   npm run dev
+   # or
+   pnpm dev
+   ```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ## Contact
 
@@ -295,3 +398,4 @@ Alsino Skowronnek: https://github.com/alsino/
 
 - [GitHub API Documentation](https://docs.github.com/en/rest)
 - [Vercel Deployment Documentation](https://vercel.com/docs/concepts/deployments/overview)
+- [Google Cloud Translation API Documentation](https://cloud.google.com/translate/docs)
