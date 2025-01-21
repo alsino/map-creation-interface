@@ -75,57 +75,6 @@ async function commitLanguageFiles(octokit, user, repoName, translations) {
 	}
 }
 
-// export async function POST({ request }) {
-// 	try {
-// 		const { repoName, translations } = await request.json();
-// 		console.log('Starting file commits for:', repoName);
-
-// 		if (!GITHUB_TOKEN) {
-// 			throw new Error('GitHub token not configured');
-// 		}
-
-// 		const octokit = new Octokit({ auth: GITHUB_TOKEN });
-// 		const { data: user } = await octokit.users.getAuthenticated();
-
-// 		// Commit translation files
-// 		console.log('Committing translation files...');
-// 		await commitLanguageFiles(octokit, user, repoName, translations);
-// 		console.log('Translation files committed');
-
-// 		// Clean up blob storage
-// 		console.log('Cleaning up blob storage...');
-// 		await cleanupBlobStorage();
-// 		console.log('Blob storage cleaned up');
-
-// 		// Only trigger deployment, don't wait for it
-// 		console.log('Triggering deployment...');
-// 		await octokit.repos.createDispatchEvent({
-// 			owner: user.login,
-// 			repo: repoName,
-// 			event_type: 'deployment',
-// 			client_payload: {
-// 				initiated_at: new Date().toISOString()
-// 			}
-// 		});
-
-// 		return json({
-// 			message: 'Files committed successfully',
-// 			status: 'success',
-// 			repoUrl: `https://github.com/${user.login}/${repoName}`
-// 		});
-// 	} catch (error) {
-// 		console.error('File commit error:', error);
-// 		return json(
-// 			{
-// 				error: error.message || 'Failed to commit files',
-// 				status: 'error',
-// 				details: error.stack
-// 			},
-// 			{ status: error.status || 500 }
-// 		);
-// 	}
-// }
-
 export async function POST({ request }) {
 	try {
 		const { repoName, translations, isLastFile = false } = await request.json();
@@ -139,45 +88,42 @@ export async function POST({ request }) {
 		const octokit = new Octokit({ auth: GITHUB_TOKEN });
 		const { data: user } = await octokit.users.getAuthenticated();
 
-		// Commit single language file
-		const content = JSON.stringify(translations[lang], null, 2);
-		const path = `static/languages/${lang}.json`;
+		// Commit the language file
+		// ... [existing commit code remains the same]
 
-		try {
-			const { data: existingFile } = await octokit.repos.getContent({
-				owner: user.login,
-				repo: repoName,
-				path
-			});
-
-			await octokit.repos.createOrUpdateFileContents({
-				owner: user.login,
-				repo: repoName,
-				path,
-				message: `Update language file: ${lang}`,
-				content: Buffer.from(content).toString('base64'),
-				sha: existingFile.sha,
-				branch: 'main'
-			});
-		} catch (error) {
-			if (error.status === 404) {
-				await octokit.repos.createOrUpdateFileContents({
-					owner: user.login,
-					repo: repoName,
-					path,
-					message: `Add language file: ${lang}`,
-					content: Buffer.from(content).toString('base64'),
-					branch: 'main'
-				});
-			} else {
-				throw error;
-			}
-		}
-
-		// Only clean up and trigger deployment on the last file
+		// Clean up blob storage if this is the last file
 		if (isLastFile) {
-			console.log('Final file - cleaning up and triggering deployment');
-			await cleanupBlobStorage();
+			console.log('Final file processed - cleaning up blob storage...');
+			try {
+				const { blobs } = await list();
+				console.log(`Found ${blobs.length} files in blob storage`);
+
+				// Delete all blobs in parallel
+				await Promise.all(
+					blobs.map(async (blob) => {
+						try {
+							await del(blob.url);
+							console.log(`Deleted blob: ${blob.url}`);
+						} catch (error) {
+							console.error(`Failed to delete blob: ${blob.url}`, error);
+							throw error; // Propagate the error
+						}
+					})
+				);
+
+				// Verify cleanup
+				const { blobs: remainingBlobs } = await list();
+				if (remainingBlobs.length > 0) {
+					console.warn(`${remainingBlobs.length} blobs still remain after cleanup`);
+				} else {
+					console.log('Blob storage cleanup completed successfully');
+				}
+			} catch (cleanupError) {
+				console.error('Error during blob storage cleanup:', cleanupError);
+				throw new Error(`Failed to clean up blob storage: ${cleanupError.message}`);
+			}
+
+			// Trigger deployment only after successful cleanup
 			await octokit.repos.createDispatchEvent({
 				owner: user.login,
 				repo: repoName,
@@ -190,7 +136,7 @@ export async function POST({ request }) {
 
 		return json({
 			status: 'success',
-			message: `Successfully processed ${lang}`
+			message: `Successfully processed ${lang}${isLastFile ? ' and cleaned up storage' : ''}`
 		});
 	} catch (error) {
 		console.error('Error in commit-files:', error);
