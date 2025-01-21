@@ -64,6 +64,7 @@
 		errorMessage = null;
 		successMessage = null;
 		repoUrl = null;
+		const processedLanguages = new Set();
 
 		try {
 			// First initialize the repository
@@ -77,6 +78,7 @@
 			// Then commit one language file at a time
 			updateSteps('translations', ['validate', 'create']);
 			const languages = Object.keys($translations);
+			console.log(`Starting to process ${languages.length} languages:`, languages);
 
 			for (let i = 0; i < languages.length; i++) {
 				const lang = languages[i];
@@ -88,8 +90,13 @@
 					await makeRequest('/api/commit-files', {
 						repoName,
 						translations: singleTranslation,
-						isLastFile: i === languages.length - 1
+						isLastFile: i === languages.length - 1,
+						currentIndex: i,
+						totalFiles: languages.length
 					});
+
+					processedLanguages.add(lang);
+					console.log(`Successfully processed language ${lang} (${i + 1}/${languages.length})`);
 
 					// Update progress
 					successMessage = `Processed ${i + 1} of ${languages.length} languages...`;
@@ -108,17 +115,30 @@
 				}
 			}
 
-			// Finally deploy to Vercel
+			// Verify all languages were processed
+			const missingLanguages = languages.filter((lang) => !processedLanguages.has(lang));
+			if (missingLanguages.length > 0) {
+				console.error('Missing languages:', missingLanguages);
+				throw new Error(
+					`Failed to process ${missingLanguages.length} languages: ${missingLanguages.join(', ')}`
+				);
+			}
+
+			// Deploy to Vercel
 			updateSteps('deploy', ['validate', 'create', 'translations', 'config']);
 			const deployData = await makeRequest('/api/deploy-vercel', { repoName });
 
-			deploymentUrl = deployData.projectUrl;
+			deploymentUrl = `${deployData.projectUrl}?view=fullscreen`;
 			embedUrl = deployData.projectUrl;
 			updateSteps(null, ['validate', 'create', 'translations', 'config', 'deploy']);
 			successMessage = 'Repository created and deployed successfully!';
 		} catch (error) {
 			console.error('Error:', error);
-			errorMessage = error.message;
+			if (processedLanguages.size > 0) {
+				errorMessage = `${error.message}. Successfully processed languages: ${Array.from(processedLanguages).join(', ')}`;
+			} else {
+				errorMessage = error.message;
+			}
 			steps = steps.map((step) => ({
 				...step,
 				completed: false,
