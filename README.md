@@ -82,31 +82,7 @@ The application provides a seamless, automated translation workflow that transfo
 #### 2. Translation Generation
 
 - Utilizes Google Cloud Translate API
-- Supports 24 European languages:
-  1. Bulgarian
-  2. Croatian
-  3. Czech
-  4. Danish
-  5. Dutch
-  6. English
-  7. Estonian
-  8. Finnish
-  9. French
-  10. German
-  11. Greek
-  12. Hungarian
-  13. Irish
-  14. Italian
-  15. Latvian
-  16. Lithuanian
-  17. Maltese
-  18. Polish
-  19. Portuguese
-  20. Romanian
-  21. Slovak
-  22. Slovenian
-  23. Spanish
-  24. Swedish
+- Supports 24 European languages (Bulgarian, Croatian, Czech, Danish, Dutch, English, Estonian, Finnish, French, German, Greek, Hungarian, Irish, Italian, Latvian, Lithuanian, Maltese, Polish, Portuguese, Romanian, Slovak, Slovenian, Spanish, Swedish)
 
 #### 3. Translation Batch Processing
 
