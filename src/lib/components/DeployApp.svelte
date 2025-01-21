@@ -128,7 +128,7 @@
 			updateSteps('deploy', ['validate', 'create', 'translations', 'config']);
 			const deployData = await makeRequest('/api/deploy-vercel', { repoName });
 
-			deploymentUrl = `${deployData.projectUrl}?view=fullscreen`;
+			deploymentUrl = deployData.projectUrl;
 			embedUrl = deployData.projectUrl;
 			updateSteps(null, ['validate', 'create', 'translations', 'config', 'deploy']);
 			successMessage = 'Repository created and deployed successfully!';
