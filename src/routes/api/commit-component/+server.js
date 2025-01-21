@@ -120,44 +120,50 @@ export const mapConfig = writable(${JSON.stringify(mapConfig, null, 2)});`;
 // Commit language files in batches
 async function commitLanguageFiles(octokit, user, repoName, translations) {
 	const languages = Object.keys(translations);
-	const BATCH_SIZE = 5; // Process 5 languages at a time
+	const BATCH_SIZE = 5;
 
 	for (let i = 0; i < languages.length; i += BATCH_SIZE) {
 		const batch = languages.slice(i, i + BATCH_SIZE);
-		await Promise.all(
-			batch.map(async (lang) => {
+
+		// Process each batch sequentially to avoid SHA conflicts
+		for (const lang of batch) {
+			try {
+				const content = JSON.stringify(translations[lang], null, 2);
+				const path = `static/languages/${lang}.json`;
+
+				let sha;
 				try {
-					const content = JSON.stringify(translations[lang], null, 2);
-					const path = `static/languages/${lang}.json`;
-
-					let sha;
-					try {
-						const { data: existingFile } = await octokit.repos.getContent({
-							owner: user.login,
-							repo: repoName,
-							path
-						});
-						sha = existingFile.sha;
-					} catch (error) {
-						// File doesn't exist yet, no SHA needed
-					}
-
-					await octokit.repos.createOrUpdateFileContents({
+					// Get latest SHA before each commit
+					const { data: existingFile } = await octokit.repos.getContent({
 						owner: user.login,
 						repo: repoName,
-						path,
-						message: `Add language file: ${lang}`,
-						content: Buffer.from(content).toString('base64'),
-						sha,
-						branch: 'main'
+						path
 					});
-					console.log(`Committed language file: ${lang}`);
+					sha = existingFile.sha;
 				} catch (error) {
-					console.error(`Failed to commit language file ${lang}:`, error);
-					throw error;
+					// File doesn't exist yet, no SHA needed
 				}
-			})
-		);
+
+				await octokit.repos.createOrUpdateFileContents({
+					owner: user.login,
+					repo: repoName,
+					path,
+					message: `Add language file: ${lang}`,
+					content: Buffer.from(content).toString('base64'),
+					sha,
+					branch: 'main'
+				});
+				console.log(`Committed language file: ${lang}`);
+			} catch (error) {
+				console.error(`Failed to commit language file ${lang}:`, error);
+				throw error;
+			}
+		}
+
+		// Small delay between batches
+		if (i + BATCH_SIZE < languages.length) {
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+		}
 	}
 }
 
